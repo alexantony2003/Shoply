@@ -1,0 +1,69 @@
+<% const stats = { orders: 12, wishlist: 3, reviews: 7 }; %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Shoply | Profile</title>
+	<style>
+		body { margin: 0; font-family: Arial, sans-serif; background: #f7f8fa; color: #20252b; }
+		header { padding: 18px 6%; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #e5e7eb; }
+		nav { display: flex; align-items: center; gap: 16px; }
+		nav a { color: #344054; text-decoration: none; }
+		.brand { color: #2563eb; font-size: 24px; font-weight: bold; }
+		.search { display: flex; gap: 6px; }
+		.search input { width: 170px; padding: 8px; border: 1px solid #d5dbe3; border-radius: 6px; }
+		.content { max-width: 820px; margin: 34px auto; padding: 0 20px; }
+		.panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+		.profile { display: flex; align-items: center; gap: 20px; }
+		.avatar { width: 76px; height: 76px; display: grid; place-items: center; border-radius: 50%; background: #dbeafe; color: #2563eb; font-size: 28px; font-weight: bold; }
+		.details p { margin: 10px 0; }
+		.stats { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+		.stat { border-right: 1px solid #e5e7eb; }
+		.stat:last-child { border: 0; }
+		.number { display: block; font-size: 25px; font-weight: bold; }
+		.button { display: inline-block; padding: 11px 16px; background: #2563eb; color: #fff; border: 0; border-radius: 6px; text-decoration: none; font: inherit; cursor: pointer; }
+		.logout { background: #dc2626; }
+		@media(max-width:600px) { header { align-items: flex-start; flex-direction: column; gap: 12px; } nav { flex-wrap: wrap; } .profile { align-items: flex-start; flex-direction: column; } .stats { grid-template-columns: 1fr; gap: 18px; } .stat { border: 0; } }
+	</style>
+</head>
+<body>
+	<header>
+		<a class="brand" href="/">Shoply</a>
+		<nav>
+			<a href="/">Home</a>
+			<a href="/products">Products</a>
+			<form class="search" action="/products" method="get">
+				<input name="search" type="search" placeholder="Search products" aria-label="Search products">
+				<button class="button" type="submit">Search</button>
+			</form>
+		</nav>
+	</header>
+	<main class="content">
+		<h1>My profile</h1>
+		<section class="panel profile">
+			<div class="avatar"><%= user.name.split(' ').map(name => name[0]).join('') %></div>
+			<div class="details">
+				<h2><%= user.name %></h2>
+				<p><%= user.email %></p>
+				<p><%= user.phone %></p>
+				<p>Member since <%= user.memberSince %></p>
+			</div>
+		</section>
+		<section class="panel stats">
+			<div class="stat"><span class="number"><%= stats.orders %></span>Orders</div>
+			<div class="stat"><span class="number"><%= stats.wishlist %></span>Wishlist items</div>
+			<div class="stat"><span class="number"><%= stats.reviews %></span>Reviews</div>
+		</section>
+		<section class="panel">
+			<h2>Account actions</h2>
+			<p>Update your personal information, addresses, and communication preferences.</p>
+			<a class="button" href="/profile/edit">Edit profile</a>
+			<a class="button" href="/orders">View orders</a>
+			<form action="/logout" method="POST" style="display:inline">
+				<button class="button logout" type="submit">Log out</button>
+			</form>
+		</section>
+	</main>
+</body>
+</html>

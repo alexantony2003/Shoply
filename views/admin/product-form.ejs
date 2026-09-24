@@ -1,0 +1,312 @@
+<%
+const productData = product;
+const editMode = isEdit;
+%>
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>
+    Shoply Admin | <%= editMode ? 'Edit' : 'Add' %> Product
+  </title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #20252b;
+    }
+
+    .panel {
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 26px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 6px;
+      font-weight: bold;
+    }
+
+    input,
+    select,
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #d5dbe3;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    button {
+      margin-top: 22px;
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .hint {
+      margin: 6px 0 0;
+      color: #667085;
+      font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        margin: 15px;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <main class="panel">
+
+```
+<p>
+  <a href="/admin/products">← Back to products</a>
+</p>
+
+<h1>
+  <%= editMode ? 'Edit' : 'Add' %> Product
+</h1>
+
+<form
+  action="/admin/products"
+  method="POST"
+  enctype="multipart/form-data"
+>
+
+  <!-- Product Name -->
+  <label for="name">Product name</label>
+
+  <input
+    id="name"
+    name="name"
+    type="text"
+    value="<%= productData.name %>"
+    required
+  >
+
+  <!-- Category and Price -->
+  <div class="row">
+
+    <div>
+      <label for="category">Category</label>
+
+      <select id="category" name="category">
+
+        <option value="Bags"
+          <%= productData.category === 'Bags' ? 'selected' : '' %>>
+          Bags
+        </option>
+
+        <option value="Audio"
+          <%= productData.category === 'Audio' ? 'selected' : '' %>>
+          Audio
+        </option>
+
+        <option value="Phones"
+          <%= productData.category === 'Phones' ? 'selected' : '' %>>
+          Phones
+        </option>
+
+        <option value="Headphones"
+          <%= productData.category === 'Headphones' ? 'selected' : '' %>>
+          Headphones
+        </option>
+
+        <option value="Earbuds"
+          <%= productData.category === 'Earbuds' ? 'selected' : '' %>>
+          Earbuds
+        </option>
+
+        <option value="Tablets"
+          <%= productData.category === 'Tablets' ? 'selected' : '' %>>
+          Tablets
+        </option>
+
+        <option value="Accessories"
+          <%= productData.category === 'Accessories' ? 'selected' : '' %>>
+          Accessories
+        </option>
+
+        <option value="Watches"
+          <%= productData.category === 'Watches' ? 'selected' : '' %>>
+          Watches
+        </option>
+
+        <option value="Cameras"
+          <%= productData.category === 'Cameras' ? 'selected' : '' %>>
+          Cameras
+        </option>
+
+        <option value="Gaming"
+          <%= productData.category === 'Gaming' ? 'selected' : '' %>>
+          Gaming
+        </option>
+
+        <option value="Clothing"
+          <%= productData.category === 'Clothing' ? 'selected' : '' %>>
+          Clothing
+        </option>
+
+        <option value="Footwear"
+          <%= productData.category === 'Footwear' ? 'selected' : '' %>>
+          Footwear
+        </option>
+
+        <option value="Home"
+          <%= productData.category === 'Home' ? 'selected' : '' %>>
+          Home
+        </option>
+
+      </select>
+    </div>
+
+    <div>
+      <label for="price">Price</label>
+
+      <input
+        id="price"
+        name="price"
+        type="number"
+        step="0.01"
+        min="0"
+        value="<%= productData.price %>"
+        required
+      >
+    </div>
+
+  </div>
+
+  <!-- Stock and Rating -->
+  <div class="row">
+
+    <div>
+      <label for="stock">Stock quantity</label>
+
+      <input
+        id="stock"
+        name="stock"
+        type="number"
+        min="0"
+        value="<%= productData.stock %>"
+        required
+      >
+    </div>
+
+    <div>
+      <label for="rating">Rating (0-5)</label>
+
+      <input
+        id="rating"
+        name="rating"
+        type="number"
+        min="0"
+        max="5"
+        step="0.1"
+        value="<%= productData.rating %>"
+      >
+    </div>
+
+  </div>
+
+  <!-- Description -->
+  <label for="description">Description</label>
+
+  <textarea
+    id="description"
+    name="description"
+    required
+  ><%= productData.description %></textarea>
+
+  <!-- Image -->
+  <label for="image">Product image (JPG/JPEG)</label>
+
+  <input
+    id="image"
+    name="image"
+    type="file"
+    accept=".jpg,.jpeg,image/jpeg"
+    <%= editMode ? '' : 'required' %>
+  >
+
+  <p class="hint">
+    Maximum file size: 5 MB.
+  </p>
+
+  <!-- Status -->
+  <label for="status">Status</label>
+
+  <select id="status" name="status">
+
+    <option
+      value="active"
+      <%= productData.status === 'active' ? 'selected' : '' %>
+    >
+      Active
+    </option>
+
+    <option
+      value="inactive"
+      <%= productData.status === 'inactive' ? 'selected' : '' %>
+    >
+      Inactive
+    </option>
+
+  </select>
+
+  <!-- Submit -->
+  <button type="submit">
+    <%= editMode ? 'Update' : 'Save' %> Product
+  </button>
+
+</form>
+
+
+  </main>
+
+</body>
+</html>

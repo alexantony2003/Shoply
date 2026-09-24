@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shoply | Register</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #20252b; }
+    .panel { max-width: 480px; margin: 6vh auto; padding: 32px; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px #00000012; }
+    h1 { margin-top: 0; color: #2563eb; } label { display: block; margin: 16px 0 6px; font-weight: bold; }
+    input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #d5dbe3; border-radius: 6px; }
+    button { width: 100%; margin-top: 24px; padding: 13px; border: 0; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; }
+    a { color: #2563eb; } .muted { color: #667085; text-align: center; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Create your account</h1>
+    <p>Join Shoply and manage your orders, wishlist, and profile.</p>
+   <form action="/users/register" method="POST">
+
+      <!-- Name -->
+      <label for="name">Full name</label>
+      <input
+        id="name"
+        name="name"
+        type="text"
+        placeholder="Alex Antony"
+        required
+      >
+
+      <!-- Email -->
+      <label for="email">Email address</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        placeholder="alex@example.com"
+        required
+      >
+
+      <!-- Phone -->
+      <label for="phone">Phone number</label>
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        placeholder="9876543210"
+        required
+      >
+
+      <!-- Address -->
+      <label for="address">Address</label>
+      <input
+        id="address"
+        name="address"
+        type="text"
+        placeholder="Your address"
+        required
+      >
+
+      <!-- Password -->
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        placeholder="password"
+        minlength="3"
+        required
+      >
+
+      <!-- Confirm Password -->
+      <label for="confirmPassword">Confirm password</label>
+      <input
+        id="confirmPassword"
+        name="confirmPassword"
+        type="password"
+        placeholder="Confirm your password"
+        minlength="3"
+        required
+      >
+
+      <button type="submit">Register</button>
+
+    </form>
+
+    <p class="muted">
+      Already registered?
+      <a href="/login">Login here</a>
+    </p>
+  </main>
+</body>
+</html>

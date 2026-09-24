@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shoply | Home</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; color: #20252b; background: #f7f8fa; } header { padding: 18px 6%; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #e5e7eb; } nav { display: flex; align-items: center; } nav a { margin-left: 18px; color: #344054; text-decoration: none; } .brand { color: #2563eb; font-size: 24px; font-weight: bold; } .profile-link { display: inline-grid; place-items: center; margin-left: 18px; } .profile-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #2563eb; color: #fff; font-size: 13px; font-weight: bold; letter-spacing: .04em; }
+    .hero { padding: 54px 6%; background: #dbeafe; } .hero h1 { max-width: 620px; font-size: 42px; margin: 0 0 12px; } .hero p { font-size: 18px; }
+    .content { padding: 34px 6%; } .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px; } .product { padding: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; } .image { height: 140px; display: grid; place-items: center; background: #eef2ff; border-radius: 6px; color: #64748b; } .price { font-size: 20px; font-weight: bold; } .button { display: inline-block; padding: 10px 14px; background: #2563eb; color: white; border-radius: 6px; text-decoration: none; }
+  </style>
+  <link rel="stylesheet" href="/styles.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header><a class="brand" href="/">Shoply</a><nav><a href="/products">Products</a><a href="/cart">Cart</a><a href="/wishlist">Wishlist</a><a class="profile-link" href="/profile" aria-label="Open your profile" title="Open your profile"><span class="profile-icon"><%= user.name.split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase() %></span></a></nav></header>
+  <section class="hero"><h1>Useful things, thoughtfully chosen.</h1><p>Discover everyday products selected for comfort, quality, and style.</p><a class="button" href="#products">Shop now</a></section>
+  <main class="content" id="products"><h2>Featured products</h2><div class="products"><% products.forEach(product => { %><article class="product"><% if (product.image) { %><img class="image" src="<%= product.image %>" alt="<%= product.name %>"><% } else { %><div class="image">Product image</div><% } %><h3><%= product.name %></h3><p><%= product.category %> | <%= product.rating %>/5</p><p class="price">$<%= product.price.toFixed(2) %></p><a class="button" href="/products/<%= product._id %>">View product</a></article><% }); %></div></main>
+</body>
+</html>

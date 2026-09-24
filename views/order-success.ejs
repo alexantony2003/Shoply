@@ -1,0 +1,38 @@
+<% const order = { id: 'SHP-1049', total: 234.35, deliveryDate: 'September 26, 2026', email: 'alex@example.com' }; %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shoply | Order confirmed</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #20252b; }
+    .panel { max-width: 620px; margin: 8vh auto; padding: 34px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; text-align: center; }
+    .icon { width: 64px; height: 64px; margin: 0 auto 18px; display: grid; place-items: center; border-radius: 50%; background: #dcfae6; color: #067647; font-size: 34px; }
+    h1 { margin: 0 0 10px; color: #067647; }
+    .summary { margin: 26px 0; padding: 18px; background: #f8fafc; border-radius: 8px; text-align: left; }
+    .summary p { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; }
+    .summary p:last-child { border-bottom: 0; padding-bottom: 0; }
+    .actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .button { display: inline-block; padding: 12px 18px; border-radius: 6px; background: #2563eb; color: #fff; text-decoration: none; }
+    .secondary { background: #e5e7eb; color: #20252b; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="icon">✓</div>
+    <h1>Order confirmed</h1>
+    <p>Thank you for shopping with Shoply. Your order has been received.</p>
+    <section class="summary">
+      <p><strong>Order number</strong><span><%= order.id %></span></p>
+      <p><strong>Total paid</strong><span>$<%= order.total.toFixed(2) %></span></p>
+      <p><strong>Estimated delivery</strong><span><%= order.deliveryDate %></span></p>
+      <p><strong>Confirmation sent to</strong><span><%= order.email %></span></p>
+    </section>
+    <div class="actions">
+      <a class="button" href="/orders/<%= order.id %>">View order</a>
+      <a class="button secondary" href="/">Continue shopping</a>
+    </div>
+  </main>
+</body>
+</html>

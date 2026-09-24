@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Shoply Admin | Products</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #20252b;
+        }
+
+        .main {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .button {
+            padding: 11px 16px;
+            background: #2563eb;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .panel {
+            overflow: auto;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .link {
+            color: #2563eb;
+            margin-right: 12px;
+            text-decoration: none;
+        }
+
+        .delete {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="main">
+
+        <p>
+            <a href="/admin">Admin dashboard</a>
+        </p>
+
+        <div class="top">
+
+            <h1>Products</h1>
+
+            <a class="button" href="/admin/products/new">
+                Add product
+            </a>
+
+        </div>
+
+        <section class="panel">
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <% if (products.length === 0) { %>
+
+                        <tr>
+                            <td colspan="6">
+                                No products found.
+                            </td>
+                        </tr>
+
+                    <% } %>
+
+
+                    <% products.forEach(product => { %>
+
+                        <tr>
+
+                            <td>
+                                <%= product.name %>
+                            </td>
+
+                            <td>
+                                <%= product.category %>
+                            </td>
+
+                            <td>
+                                ₹<%= product.price.toFixed(2) %>
+                            </td>
+
+                            <td>
+                                <%= product.stock %>
+                            </td>
+
+                            <td>
+                                <%= product.status %>
+                            </td>
+
+                            <td>
+
+                                <a
+                                    class="link"
+                                    href="/admin/products/<%= product._id %>/edit">
+                                    Edit
+                                </a>
+
+                                <a
+                                    class="link delete"
+                                    href="/admin/products/<%= product._id %>/delete">
+                                    Delete
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    <% }); %>
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

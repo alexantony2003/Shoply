@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shoply | Products</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; color: #20252b; background: #f7f8fa; }
+    header { padding: 18px 6%; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #e5e7eb; }
+    nav { display: flex; align-items: center; gap: 18px; }
+    nav a { color: #344054; text-decoration: none; }
+    .brand { color: #2563eb; font-size: 24px; font-weight: bold; }
+    .content { max-width: 1100px; margin: 0 auto; padding: 34px 6%; }
+    .search { display: flex; gap: 10px; margin: 20px 0 28px; }
+    .search input { flex: 1; padding: 12px; border: 1px solid #d5dbe3; border-radius: 6px; font-size: 16px; }
+    .button { display: inline-block; padding: 11px 16px; border: 0; background: #2563eb; color: #fff; border-radius: 6px; text-decoration: none; cursor: pointer; }
+    .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+    .product { padding: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .image { width: 100%; height: 170px; object-fit: cover; display: grid; place-items: center; background: #eef2ff; border-radius: 6px; color: #64748b; }
+    .price { font-size: 20px; font-weight: bold; }
+    .empty { padding: 24px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">Shoply</a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/cart">Cart</a>
+      <a href="/wishlist">Wishlist</a>
+      <a href="/profile">Profile</a>
+    </nav>
+  </header>
+  <main class="content">
+    <h1>Products</h1>
+    <form class="search" action="/products" method="get">
+      <input name="search" type="search" value="<%= search %>" placeholder="Search products by name, category, or description" aria-label="Search products">
+      <button class="button" type="submit">Search</button>
+    </form>
+    <% if (products.length === 0) { %>
+      <p class="empty">No products found.</p>
+    <% } else { %>
+      <div class="products">
+        <% products.forEach(product => { %>
+          <article class="product">
+            <% if (product.image) { %>
+              <img class="image" src="<%= product.image %>" alt="<%= product.name %>">
+            <% } else { %>
+              <div class="image">Product image</div>
+            <% } %>
+            <h2><%= product.name %></h2>
+            <p><%= product.category %> | <%= product.rating %>/5</p>
+            <p class="price">$<%= product.price.toFixed(2) %></p>
+            <a class="button" href="/products/<%= product._id %>">View product</a>
+          </article>
+        <% }); %>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>
