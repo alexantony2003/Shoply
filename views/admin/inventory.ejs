@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply Admin | Inventory</title><link rel="stylesheet" href="/styles.css"></head>
+<body><div class="layout"><%- include('partials/_sidebar') %><main class="main" style="padding:30px">
+  <h1>Inventory management</h1><p>Available product stock: <strong>variant totals are reflected in the product stock column.</strong></p>
+  <section class="panel" style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>Product</th><th>Option</th><th>Available stock</th><th>Set stock</th></tr></thead><tbody>
+  <% products.forEach(product => { %>
+    <% if (product.variants.length) { %>
+      <% product.variants.forEach((variant, colorIndex) => { %><% variant.options.forEach((option, optionIndex) => { %>
+        <tr><td><%= product.name %><br><small><%= variant.color %></small></td><td><%= option.label %></td><td><%= option.stock %></td>
+          <td><form action="/admin/inventory/<%= product._id %>" method="post"><input type="hidden" name="colorIndex" value="<%= colorIndex %>"><input type="hidden" name="optionIndex" value="<%= optionIndex %>"><input type="number" min="0" step="1" name="stock" value="<%= option.stock %>" required><button type="submit">Update</button></form></td></tr>
+      <% }); }); %>
+    <% } else { %><tr><td><%= product.name %></td><td>Standard</td><td><%= product.stock %></td>
+      <td><form action="/admin/inventory/<%= product._id %>" method="post"><input type="hidden" name="colorIndex" value="-1"><input type="hidden" name="optionIndex" value="-1"><input type="number" min="0" step="1" name="stock" value="<%= product.stock %>" required><button type="submit">Update</button></form></td></tr>
+    <% } %>
+  <% }); %>
+  </tbody></table></section>
+</main></div></body></html>

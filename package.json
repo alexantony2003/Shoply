@@ -5,16 +5,23 @@
   "description": "Simple Express and EJS ecommerce page renderer",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "admin:promote": "node scripts/promote-admin.js",
+    "categories:sync": "node scripts/sync-categories.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "connect-mongo": "^6.0.0",
+    "crypto": "^1.0.1",
     "dotenv": "^18.0.3",
     "ejs": "^3.1.10",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "mongoose": "^9.10.2",
     "multer": "^2.4.0",
-    "nodemailer": "^10.0.10"
+    "nodemailer": "^10.0.10",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "razorpay": "^2.9.8"
   }
 }

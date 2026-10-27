@@ -1,0 +1,22 @@
+<%
+    const railCategories = typeof categoryNav !== "undefined" && Array.isArray(categoryNav)
+        ? categoryNav
+        : [];
+    const activeSlug = typeof activeCategorySlug !== "undefined" ? activeCategorySlug : "";
+%>
+<% if (railCategories.length) { %>
+<nav class="category-rail glass-card" aria-label="Shop by category">
+    <div class="category-rail__track" data-category-rail>
+        <% railCategories.forEach((category) => { %>
+            <a
+                class="category-rail__item<%= category.slug === activeSlug ? ' is-active' : '' %>"
+                href="<%= category.href %>"
+                <% if (category.slug === activeSlug) { %>aria-current="page"<% } %>
+            >
+                <span class="category-rail__icon" aria-hidden="true"><%- category.icon %></span>
+                <span class="category-rail__label"><%= category.name %></span>
+            </a>
+        <% }); %>
+    </div>
+</nav>
+<% } %>

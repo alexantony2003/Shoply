@@ -1,6 +1,34 @@
 <%
 const productData = product;
 const editMode = isEdit;
+const getCategoryType = (name, slug) => {
+  const normalized = `${name || ''} ${slug || ''}`.trim().toLowerCase();
+  if (/\b(phone|phones|iphone|iphones|smartphone|smartphones|mobile|mobiles)\b/.test(normalized)) return 'phone';
+  if (/\b(bud|buds|earbud|earbuds)\b/.test(normalized)) return 'buds';
+  if (/\b(laptop|laptops|notebook|notebooks)\b/.test(normalized)) return 'laptop';
+  return 'general';
+};
+const productVariants = productData.variants
+  ? Array.from(productData.variants, variant => ({
+      color: variant.color,
+      images: Array.from(variant.images || []),
+      options: Array.from(variant.options || [], option => ({
+        label: option.label,
+        price: option.price,
+        stock: option.stock
+      }))
+    }))
+  : [];
+const productCoupons = productData.coupons && productData.coupons.length
+  ? Array.from(productData.coupons)
+  : (productData.couponCode && Number(productData.discountPercentage) > 0
+      ? [{ code: productData.couponCode, discountType: 'percentage', discountValue: productData.discountPercentage }]
+      : []);
+const productSpecifications = productData.specifications
+  ? (typeof productData.specifications.entries === 'function'
+      ? Array.from(productData.specifications.entries())
+      : Object.entries(productData.specifications))
+  : [];
 %>
 
 <!DOCTYPE html>
@@ -15,20 +43,24 @@ const editMode = isEdit;
     Shoply Admin | <%= editMode ? 'Edit' : 'Add' %> Product
   </title>
 
+  <link rel="stylesheet" href="/vendor/cropperjs/cropper.min.css">
+  <link rel="stylesheet" href="/styles.css">
+
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      color: #20252b;
+      background: var(--color-background);
+      color: var(--color-text);
     }
 
     .panel {
-      max-width: 700px;
+      box-sizing: border-box;
+      width: min(100% - 48px, 920px);
       margin: 30px auto;
       padding: 26px;
-      background: #fff;
-      border: 1px solid #e5e7eb;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-subtle);
       border-radius: 8px;
     }
 
@@ -44,7 +76,7 @@ const editMode = isEdit;
       box-sizing: border-box;
       width: 100%;
       padding: 11px;
-      border: 1px solid #d5dbe3;
+      border: 1px solid var(--color-border);
       border-radius: 6px;
       font-size: 15px;
     }
@@ -60,39 +92,668 @@ const editMode = isEdit;
       gap: 16px;
     }
 
+    .editor-section {
+      margin-top: 24px;
+      padding: 18px;
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 8px;
+      background: var(--color-surface);
+    }
+
+    .editor-section h2 {
+      margin: 0;
+    }
+
+    .editor-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(140px, .8fr) minmax(120px, .6fr) auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 12px;
+    }
+
+    .editor-row label,
+    .coupon-row label {
+      margin-top: 0;
+    }
+
+    .variant-group {
+      margin-top: 18px;
+      padding: 0 0 18px;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .variant-editor {
+      margin-top: 24px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .variant-editor h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .variant-group-header,
+    .variant-option-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .variant-group-header {
+      margin-bottom: 10px;
+    }
+
+    .variant-group label {
+      margin-top: 15px;
+    }
+
+    .variant-color-name-label {
+      margin-top: 0 !important;
+    }
+
+    .variant-options {
+      display: grid;
+      gap: 12px;
+    }
+
+    .variant-option-row > label {
+      margin-top: 0;
+    }
+
+    .variant-option-row {
+      grid-template-columns: minmax(0, 1fr) minmax(140px, .8fr) minmax(140px, .8fr) auto;
+    }
+
+    .variant-option-label[hidden] {
+      display: none;
+    }
+
+    .buds-variant-group .variant-option-row {
+      grid-template-columns: minmax(140px, .8fr) minmax(140px, .8fr) auto;
+    }
+
+    .variant-image-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .variant-image-slot {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 10px;
+      background: var(--color-surface);
+    }
+
+    .variant-image-slot label {
+      margin: 0;
+    }
+
+    .variant-image-slot input[type="file"] {
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    .variant-image-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border: 1px dashed var(--color-border);
+      border-radius: 8px;
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+
+    .variant-image-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    label[for="show-new-tag"] {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #show-new-tag {
+      width: auto;
+      margin: 0;
+    }
+
+    .remove-row,
+    .secondary-button {
+      margin-top: 0;
+      padding: 10px 12px;
+      background: var(--color-primary-soft);
+      color: var(--color-text);
+    }
+
+    .remove-row:hover,
+    .secondary-button:hover {
+      background: var(--color-surface-muted);
+    }
+
+    /* Image Slots Grid */
+    .image-slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .image-slot-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .image-slot-card:hover {
+      border-color: var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .slot-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .slot-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--color-text);
+    }
+
+    .slot-number {
+      background: var(--color-primary);
+      color: var(--color-text-on-solid);
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .slot-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge-ready {
+      background: var(--color-success-soft);
+      color: var(--color-success-text);
+    }
+
+    .badge-empty {
+      background: var(--color-background);
+      color: var(--color-text-muted);
+    }
+
+    .slot-preview-box {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      border: 2px dashed var(--color-border);
+      background: var(--color-surface);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .slot-preview-box:hover {
+      border-color: var(--color-primary);
+      background: var(--color-surface);
+    }
+
+    .slot-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .slot-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 12px;
+      color: var(--color-text-muted);
+      gap: 4px;
+    }
+
+    .placeholder-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin: 4px 0 0;
+    }
+
+    .placeholder-sub {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+
+    .slot-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--color-overlay);
+      color: var(--color-text-on-solid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .slot-preview-box:hover .slot-overlay {
+      opacity: 1;
+    }
+
+    .slot-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn-slot {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 0;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .btn-slot:hover:not(:disabled) {
+      background: var(--color-background);
+      border-color: var(--color-border);
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-slot:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-crop {
+      background: var(--color-primary-soft) !important;
+      color: var(--color-primary-text) !important;
+      border-color: var(--color-border) !important;
+    }
+
+    .btn-crop:hover:not(:disabled) {
+      background: var(--color-primary-soft) !important;
+    }
+
+    /* Cropper Modal */
+    .crop-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: var(--color-overlay);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .crop-modal-container {
+      background: var(--color-surface);
+      width: min(940px, 100%);
+      max-height: 92vh;
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .crop-modal-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--color-surface);
+    }
+
+    .crop-modal-title {
+      margin: 0;
+      font-size: 18px;
+      color: var(--color-text);
+      font-weight: 700;
+    }
+
+    .crop-modal-subtitle {
+      margin: 3px 0 0;
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+
+    .crop-modal-close {
+      background: none !important;
+      border: 0 !important;
+      color: var(--color-text-muted) !important;
+      font-size: 26px;
+      cursor: pointer;
+      padding: 0 6px;
+      line-height: 1;
+      margin: 0 !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .crop-modal-close:hover {
+      color: var(--color-text) !important;
+      transform: none !important;
+    }
+
+    .crop-modal-body {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 20px;
+      overflow-y: auto;
+      max-height: calc(92vh - 145px);
+    }
+
+    .crop-canvas-area {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cropper-image-wrapper {
+      width: 100%;
+      height: 380px;
+      background: var(--color-surface-inverse);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cropper-image-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+
+    .crop-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tool-btn {
+      margin-top: 0 !important;
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      background: var(--color-surface-soft) !important;
+      color: var(--color-text) !important;
+      border: 1px solid var(--color-border) !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .tool-btn:hover {
+      background: var(--color-primary-soft) !important;
+      color: var(--color-text) !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .crop-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: var(--color-surface);
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border-subtle);
+    }
+
+    .sidebar-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-text);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 8px;
+      display: block;
+    }
+
+    .ratio-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .ratio-btn {
+      margin-top: 0 !important;
+      padding: 7px 6px !important;
+      font-size: 11px !important;
+      background: var(--color-surface) !important;
+      color: var(--color-text) !important;
+      border: 1px solid var(--color-border) !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .ratio-btn:hover {
+      background: var(--color-surface-soft) !important;
+      transform: none !important;
+    }
+
+    .ratio-btn.active {
+      background: var(--color-primary) !important;
+      color: var(--color-text-on-solid) !important;
+      border-color: var(--color-primary) !important;
+    }
+
+    .resolution-select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: var(--color-surface) !important;
+    }
+
+    .preview-box-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cropper-preview-thumb {
+      width: 140px;
+      height: 140px;
+      overflow: hidden;
+      border-radius: 8px;
+      border: 2px solid var(--color-primary);
+      background: var(--color-primary-soft);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preview-hint {
+      margin: 4px 0 0;
+      font-size: 11px;
+      color: var(--color-text-muted);
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .crop-modal-footer {
+      padding: 14px 22px;
+      border-top: 1px solid var(--color-border-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--color-surface);
+    }
+
+    .btn-modal-cancel {
+      margin-top: 0 !important;
+      padding: 10px 18px !important;
+      background: var(--color-surface-soft) !important;
+      color: var(--color-text) !important;
+      border: 1px solid var(--color-border) !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .btn-modal-cancel:hover {
+      background: var(--color-primary-soft) !important;
+      color: var(--color-text) !important;
+      transform: none !important;
+    }
+
+    .btn-modal-apply {
+      margin-top: 0 !important;
+      padding: 10px 22px !important;
+      background: var(--color-primary) !important;
+      color: var(--color-text-on-solid) !important;
+      border: 0 !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-modal-apply:hover {
+      background: var(--color-primary-hover) !important;
+    }
+
     button {
       margin-top: 22px;
       padding: 12px 18px;
       border: 0;
       border-radius: 6px;
-      background: #2563eb;
-      color: white;
+      background: var(--color-primary);
+      color: var(--color-text-on-solid);
       font-weight: bold;
       cursor: pointer;
     }
 
     button:hover {
-      background: #1d4ed8;
+      background: var(--color-primary-hover);
     }
 
     a {
-      color: #2563eb;
+      color: var(--color-primary-text);
       text-decoration: none;
     }
 
     .hint {
       margin: 6px 0 0;
-      color: #667085;
+      color: var(--color-text-muted);
       font-size: 13px;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
       .row {
         grid-template-columns: 1fr;
       }
 
+      .editor-row,
+      .image-slots-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .variant-option-row {
+        grid-template-columns: 1fr;
+      }
+
+      .variant-group-header {
+        grid-template-columns: 1fr;
+      }
+
+      .variant-image-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .variant-group-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .crop-modal-body {
+        grid-template-columns: 1fr;
+      }
+
+      .cropper-image-wrapper {
+        height: 260px;
+      }
+
       .panel {
-        margin: 15px;
+        width: calc(100% - 30px);
+        margin: 15px auto;
       }
     }
   </style>
@@ -100,10 +761,10 @@ const editMode = isEdit;
 </head>
 
 <body>
-
+  <div class="layout">
+    <%- include('partials/_sidebar') %>
   <main class="panel">
 
-```
 <p>
   <a href="/admin/products">← Back to products</a>
 </p>
@@ -113,7 +774,7 @@ const editMode = isEdit;
 </h1>
 
 <form
-  action="/admin/products"
+  action="<%= editMode ? '/admin/products/' + productData._id + '/edit' : '/admin/products' %>"
   method="POST"
   enctype="multipart/form-data"
 >
@@ -135,79 +796,35 @@ const editMode = isEdit;
     <div>
       <label for="category">Category</label>
 
-      <select id="category" name="category">
+      <select id="category" name="category" required>
+        <option value="">Select a category</option>
 
-        <option value="Bags"
-          <%= productData.category === 'Bags' ? 'selected' : '' %>>
-          Bags
-        </option>
-
-        <option value="Audio"
-          <%= productData.category === 'Audio' ? 'selected' : '' %>>
-          Audio
-        </option>
-
-        <option value="Phones"
-          <%= productData.category === 'Phones' ? 'selected' : '' %>>
-          Phones
-        </option>
-
-        <option value="Headphones"
-          <%= productData.category === 'Headphones' ? 'selected' : '' %>>
-          Headphones
-        </option>
-
-        <option value="Earbuds"
-          <%= productData.category === 'Earbuds' ? 'selected' : '' %>>
-          Earbuds
-        </option>
-
-        <option value="Tablets"
-          <%= productData.category === 'Tablets' ? 'selected' : '' %>>
-          Tablets
-        </option>
-
-        <option value="Accessories"
-          <%= productData.category === 'Accessories' ? 'selected' : '' %>>
-          Accessories
-        </option>
-
-        <option value="Watches"
-          <%= productData.category === 'Watches' ? 'selected' : '' %>>
-          Watches
-        </option>
-
-        <option value="Cameras"
-          <%= productData.category === 'Cameras' ? 'selected' : '' %>>
-          Cameras
-        </option>
-
-        <option value="Gaming"
-          <%= productData.category === 'Gaming' ? 'selected' : '' %>>
-          Gaming
-        </option>
-
-        <option value="Clothing"
-          <%= productData.category === 'Clothing' ? 'selected' : '' %>>
-          Clothing
-        </option>
-
-        <option value="Footwear"
-          <%= productData.category === 'Footwear' ? 'selected' : '' %>>
-          Footwear
-        </option>
-
-        <option value="Home"
-          <%= productData.category === 'Home' ? 'selected' : '' %>>
-          Home
-        </option>
+        <% categories.forEach(category => { %>
+          <option
+            value="<%= category._id %>"
+            data-product-type="<%= getCategoryType(category.name, category.slug) %>"
+            <%= String(productData.category) === String(category._id) ? 'selected' : '' %>>
+            <%= category.name %>
+          </option>
+        <% }); %>
 
       </select>
     </div>
 
     <div>
-      <label for="price">Price</label>
+      <label for="brand">Brand</label>
 
+      <input
+        id="brand"
+        name="brand"
+        type="text"
+        value="<%= productData.brand || '' %>"
+        required
+      >
+    </div>
+
+    <div>
+      <label for="price">Selling price</label>
       <input
         id="price"
         name="price"
@@ -215,13 +832,24 @@ const editMode = isEdit;
         step="0.01"
         min="0"
         value="<%= productData.price %>"
-        required
       >
+      <label for="original-price">Original price (before discount)</label>
+      <input
+        id="original-price"
+        name="originalPrice"
+        type="number"
+        step="0.01"
+        min="0"
+        value="<%= productData.originalPrice || '' %>"
+        placeholder="Leave blank if there is no discount"
+      >
+      <p class="hint">Must be higher than every variant price. <span id="discount-preview" aria-live="polite"></span></p>
     </div>
 
   </div>
 
-  <!-- Stock and Rating -->
+  <div id="base-price-stock" <%= productVariants.length ? 'hidden' : '' %>>
+  <!-- Stock -->
   <div class="row">
 
     <div>
@@ -233,80 +861,813 @@ const editMode = isEdit;
         type="number"
         min="0"
         value="<%= productData.stock %>"
-        required
-      >
-    </div>
-
-    <div>
-      <label for="rating">Rating (0-5)</label>
-
-      <input
-        id="rating"
-        name="rating"
-        type="number"
-        min="0"
-        max="5"
-        step="0.1"
-        value="<%= productData.rating %>"
       >
     </div>
 
   </div>
+  <p class="hint">When color variants are added, their option prices and stock quantities are used. Otherwise, enter a product price and stock quantity above.</p>
+  </div>
+
+  <section class="editor-section" id="system-memory-section" aria-labelledby="system-memory-title" hidden>
+    <h2 id="system-memory-title">System memory</h2>
+    <label for="system-memory">System memory (RAM)</label>
+    <input
+      id="system-memory"
+      name="systemMemory"
+      type="text"
+      maxlength="100"
+      value="<%= productData.systemMemory || '' %>"
+      placeholder="Example: 16 GB DDR5"
+    >
+  </section>
+
+  <section class="variant-editor" aria-labelledby="variants-title">
+    <h2 id="variants-title">Product colors and variants</h2>
+    <p class="hint">Add the same product in different colors. Each color has its own images and each storage option has its own price and stock.</p>
+    <input type="hidden" id="variants-data" name="variantsData" value="<%= JSON.stringify(productVariants) %>">
+    <div id="variant-groups"></div>
+    <button class="secondary-button" id="add-color-variant" type="button">Add color</button>
+  </section>
 
   <!-- Description -->
-  <label for="description">Description</label>
+  <label for="description">Product description</label>
 
   <textarea
     id="description"
     name="description"
     required
+    placeholder="Describe the product."
   ><%= productData.description %></textarea>
+  <p class="hint">Add a short product description. Use the structured specifications below for details such as processor, display, or battery.</p>
 
-  <!-- Image -->
-  <label for="image">Product image (JPG/JPEG)</label>
+  <section class="editor-section" aria-labelledby="specifications-title">
+    <h2 id="specifications-title">Specifications</h2>
+    <p class="hint">Add category-specific specification names and values, such as Storage — 512 GB.</p>
+    <input type="hidden" id="specifications-data" name="specificationsData" value="<%= JSON.stringify(productSpecifications) %>">
+    <div id="specification-rows"></div>
+    <button class="secondary-button" id="add-specification" type="button">Add specification</button>
+  </section>
 
-  <input
-    id="image"
-    name="image"
-    type="file"
-    accept=".jpg,.jpeg,image/jpeg"
-    <%= editMode ? '' : 'required' %>
-  >
+  <section class="editor-section" aria-labelledby="highlights-title">
+    <h2 id="highlights-title">Product highlights</h2>
+    <p class="hint">Enter one highlight per line (up to 30 lines).</p>
+    <textarea id="highlights" name="highlights" maxlength="8000" placeholder="Fast charging&#10;One-year warranty"><%= (productData.highlights || []).join('\n') %></textarea>
+  </section>
 
-  <p class="hint">
-    Maximum file size: 5 MB.
+  <section class="editor-section" aria-labelledby="coupons-title">
+    <h2 id="coupons-title">Product coupons</h2>
+    <p class="hint">Add percentage or fixed-amount coupons that customers can apply to this product.</p>
+    <div id="coupon-rows">
+      <% (productCoupons.length ? productCoupons : [{}]).forEach(coupon => { %>
+        <div class="editor-row coupon-row">
+          <div>
+            <label>Coupon code</label>
+            <input name="couponCode" type="text" maxlength="32" pattern="[A-Za-z0-9_-]{3,32}" value="<%= coupon.code || '' %>" placeholder="SAVE10">
+          </div>
+          <div>
+            <label>Discount type</label>
+            <select name="couponType">
+              <option value="percentage" <%= !coupon.discountType || coupon.discountType === 'percentage' ? 'selected' : '' %>>Percentage</option>
+              <option value="fixed" <%= coupon.discountType === 'fixed' ? 'selected' : '' %>>Fixed amount (₹)</option>
+            </select>
+          </div>
+          <div>
+            <label>Discount value</label>
+            <input name="couponValue" type="number" min="0.01" step="0.01" value="<%= coupon.discountValue || '' %>" placeholder="10">
+          </div>
+          <button class="remove-row" type="button" aria-label="Remove coupon">Remove</button>
+        </div>
+      <% }); %>
+    </div>
+    <button class="secondary-button" id="add-coupon" type="button">Add coupon</button>
+  </section>
+
+  <section class="editor-section" aria-labelledby="new-tag-title">
+    <h2 id="new-tag-title">New product badge</h2>
+    <% if (editMode) { %>
+      <label for="show-new-tag">
+        <input
+          id="show-new-tag"
+          name="showNewTag"
+          type="checkbox"
+          value="true"
+          <%= productData.showNewTag ? 'checked' : '' %>
+        >
+        Show “Newly added” badge on this product
+      </label>
+      <p class="hint">Uncheck this to remove the badge from customer-facing product images.</p>
+    <% } else { %>
+      <p class="hint">The “Newly added” badge will appear on this product until you remove it when editing.</p>
+    <% } %>
+  </section>
+
+  <section class="editor-section" aria-labelledby="featured-title">
+    <h2 id="featured-title">Featured product</h2>
+    <label for="featured">
+      <input id="featured" name="featured" type="checkbox" value="true" <%= productData.featured ? 'checked' : '' %>>
+      Include this product in featured sorting
+    </label>
+  </section>
+
+  <section class="editor-section" aria-labelledby="purchase-limit-title">
+    <h2 id="purchase-limit-title">Purchase limit</h2>
+    <label for="max-per-customer">Maximum quantity per customer</label>
+    <input id="max-per-customer" name="maxPerCustomer" type="number" min="1" max="100" step="1" value="<%= productData.maxPerCustomer || 5 %>" required>
+    <p class="hint">Applies across all colors and variants. Default: 5 per order.</p>
+  </section>
+
+  <!-- Product images -->
+  <div id="default-product-images" hidden>
+  <label>Default product images (3 High-Quality Images)</label>
+  <p class="hint" style="margin-top: 0; margin-bottom: 12px;">
+    These shared product images are shown to customers along with the selected color images. When color variants are added, these images are optional; upload all 3 or leave all 3 empty.
   </p>
+
+  <%
+    const currentImages = productData.images && productData.images.length
+      ? productData.images
+      : (productData.image ? [productData.image] : []);
+  %>
+
+  <div class="image-slots-grid">
+    <% [0, 1, 2].forEach(index => { %>
+      <%
+        const existingImg = currentImages[index] || '';
+        const slotLabels = ['Main Product Image (Cover)', 'Secondary View (Angle 2)', 'Additional View (Angle 3)'];
+      %>
+      <div class="image-slot-card" id="slot-card-<%= index %>" data-slot="<%= index %>">
+        <div class="slot-header">
+          <div class="slot-title">
+            <span class="slot-number">#<%= index + 1 %></span>
+            <strong><%= slotLabels[index] %></strong>
+          </div>
+          <span class="slot-badge <%= existingImg ? 'badge-ready' : 'badge-empty' %>" id="slot-badge-<%= index %>">
+            <%= existingImg ? 'Existing Image' : (editMode || productVariants.length ? 'Optional' : 'Required') %>
+          </span>
+        </div>
+
+        <div class="slot-preview-box" id="slot-preview-box-<%= index %>" onclick="handleSlotBoxClick(<%= index %>)" title="Click to upload, crop or change image">
+          <% if (existingImg) { %>
+            <img id="slot-preview-img-<%= index %>" class="slot-preview-img" src="<%= existingImg %>" alt="Product Image <%= index + 1 %>">
+            <div class="slot-overlay">
+              <span>✂️ Click to Crop or Replace</span>
+            </div>
+            <div class="slot-placeholder" id="slot-placeholder-<%= index %>" style="display:none;">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              <p class="placeholder-text">Click to choose image</p>
+              <span class="placeholder-sub">JPG, PNG, WebP</span>
+            </div>
+          <% } else { %>
+            <img id="slot-preview-img-<%= index %>" class="slot-preview-img" style="display:none;" alt="Product Image <%= index + 1 %>">
+            <div class="slot-placeholder" id="slot-placeholder-<%= index %>">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              <p class="placeholder-text">Click to choose image</p>
+              <span class="placeholder-sub">JPG, PNG, WebP</span>
+            </div>
+            <div class="slot-overlay" style="display:none;">
+              <span>✂️ Click to Crop or Replace</span>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="slot-actions">
+          <button type="button" class="btn-slot btn-crop" id="btn-crop-<%= index %>" onclick="openCropperForSlot(<%= index %>)" <%= existingImg ? '' : 'disabled' %>>
+            ✂️ Crop & Resize
+          </button>
+          <button type="button" class="btn-slot" onclick="triggerFileInput(<%= index %>)">
+            📁 Choose Image
+          </button>
+          <button type="button" class="btn-slot" id="btn-reset-<%= index %>" onclick="resetSlot(<%= index %>)" style="<%= existingImg ? '' : 'display:none;' %>">
+            ↺ Reset
+          </button>
+        </div>
+
+        <!-- Hidden file inputs populated automatically after cropping -->
+        <input
+          type="file"
+          id="file-input-<%= index %>"
+          name="image_<%= index %>"
+          accept="image/*,.jpg,.jpeg,.png,.webp"
+          style="display:none;"
+          onchange="onFileSelected(event, <%= index %>)"
+        >
+        <input
+          type="file"
+          id="compat-input-<%= index %>"
+          name="images"
+          accept="image/*,.jpg,.jpeg,.png,.webp"
+          style="display:none;"
+        >
+        <input
+          type="hidden"
+          id="existing-input-<%= index %>"
+          name="existingImages"
+          value="<%= existingImg %>"
+        >
+      </div>
+    <% }); %>
+  </div>
+
+  <p class="hint" style="margin-top: 14px;">
+    <% if (editMode) { %>
+      Leave slots untouched to keep existing images, or crop and replace any slot individually.
+    <% } else { %>
+      Upload all 3 default images, or leave them empty when adding color variants.
+    <% } %>
+  </p>
+  </div>
 
   <!-- Status -->
   <label for="status">Status</label>
 
   <select id="status" name="status">
-
-    <option
-      value="active"
-      <%= productData.status === 'active' ? 'selected' : '' %>
-    >
-      Active
-    </option>
-
-    <option
-      value="inactive"
-      <%= productData.status === 'inactive' ? 'selected' : '' %>
-    >
-      Inactive
-    </option>
-
+    <option value="active" <%= productData.status === 'active' ? 'selected' : '' %>>Active</option>
+    <option value="inactive" <%= productData.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
   </select>
 
   <!-- Submit -->
-  <button type="submit">
+  <button type="submit" id="submit-btn">
     <%= editMode ? 'Update' : 'Save' %> Product
   </button>
 
 </form>
 
-
   </main>
+  </div>
 
+  <!-- CROPPER MODAL -->
+  <div id="cropper-modal" class="crop-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="crop-modal-title">
+    <div class="crop-modal-container">
+      <div class="crop-modal-header">
+        <div>
+          <h3 class="crop-modal-title" id="crop-modal-title">Crop & Resize Product Image</h3>
+          <p class="crop-modal-subtitle" id="crop-modal-subtitle">Editing Slot</p>
+        </div>
+        <button type="button" class="crop-modal-close" onclick="closeCropperModal()" aria-label="Close crop modal">&times;</button>
+      </div>
+
+      <div class="crop-modal-body">
+        <!-- Left: Image Viewport & Tools -->
+        <div class="crop-canvas-area">
+          <div class="cropper-image-wrapper">
+            <img id="cropper-target-img" src="" alt="Image being cropped">
+          </div>
+
+          <div class="crop-toolbar">
+            <span style="font-size: 12px; font-weight: 700; color: var(--color-text);">Tools:</span>
+            <button type="button" class="tool-btn" onclick="cropperRotate(-90)" title="Rotate left 90°">↺ -90°</button>
+            <button type="button" class="tool-btn" onclick="cropperRotate(90)" title="Rotate right 90°">↻ +90°</button>
+            <button type="button" class="tool-btn" onclick="cropperZoom(0.1)" title="Zoom in">🔍 Zoom +</button>
+            <button type="button" class="tool-btn" onclick="cropperZoom(-0.1)" title="Zoom out">🔍 Zoom -</button>
+            <button type="button" class="tool-btn" onclick="cropperFlip()" title="Flip horizontally">⇄ Flip</button>
+            <button type="button" class="tool-btn" onclick="cropperReset()" title="Reset to original">↺ Reset</button>
+          </div>
+        </div>
+
+        <!-- Right: Options & Live Preview -->
+        <div class="crop-sidebar">
+          <div>
+            <label class="sidebar-label">Aspect Ratio</label>
+            <div class="ratio-buttons">
+              <button type="button" class="ratio-btn active" data-ratio="1" onclick="setAspectRatio(1, this)">1:1 Square</button>
+              <button type="button" class="ratio-btn" data-ratio="1.3333" onclick="setAspectRatio(4/3, this)">4:3 Standard</button>
+              <button type="button" class="ratio-btn" data-ratio="0.75" onclick="setAspectRatio(3/4, this)">3:4 Portrait</button>
+              <button type="button" class="ratio-btn" data-ratio="NaN" onclick="setAspectRatio(NaN, this)">Free</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="sidebar-label">Output Dimensions</label>
+            <select id="crop-resolution-select" class="resolution-select">
+              <option value="800x800" selected>800 × 800 px (Recommended HD)</option>
+              <option value="600x600">600 × 600 px (Standard)</option>
+              <option value="1000x1000">1000 × 1000 px (Ultra HD)</option>
+              <option value="original">Original Crop Size</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="sidebar-label">Live Preview (Customer View)</label>
+            <div class="preview-box-wrapper">
+              <div class="cropper-preview-thumb"></div>
+              <p class="preview-hint">Customers will see this clean, centered crop on product cards and details.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="crop-modal-footer">
+        <button type="button" class="btn-modal-cancel" onclick="closeCropperModal()">Cancel</button>
+        <button type="button" class="btn-modal-apply" onclick="applyCropAndResize()">
+          ✓ Apply Crop & Resize
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cropper.js library -->
+  <script src="/vendor/cropperjs/cropper.min.js"></script>
+
+  <script>
+    (() => {
+      const form = document.querySelector('form');
+      const groupContainer = document.getElementById('variant-groups');
+      const dataInput = document.getElementById('variants-data');
+      const categorySelect = document.getElementById('category');
+      const systemMemorySection = document.getElementById('system-memory-section');
+      const systemMemoryInput = document.getElementById('system-memory');
+      const sellingPriceInput = document.getElementById('price');
+      const originalPriceInput = document.getElementById('original-price');
+      const discountPreview = document.getElementById('discount-preview');
+      const variantTitle = document.getElementById('variants-title');
+      const variantHint = groupContainer.parentElement.querySelector('.hint');
+      const addColorButton = document.getElementById('add-color-variant');
+      const optionLabelForType = type => type === 'phone' ? 'Storage variant' : 'Variant';
+      const variantType = () => {
+        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+        return selectedOption ? selectedOption.dataset.productType || 'general' : 'general';
+      };
+      const updateVariantOptionRows = group => {
+        const isBuds = variantType() === 'buds';
+        group.classList.toggle('buds-variant-group', isBuds);
+        group.querySelectorAll('.variant-option-row').forEach((row, index) => {
+          const label = row.querySelector('.variant-option-label');
+          const input = label.querySelector('input');
+          label.hidden = isBuds;
+          input.required = !isBuds;
+          label.firstChild.textContent = optionLabelForType(variantType());
+          input.placeholder = variantType() === 'phone' ? '512 GB' : 'Enter variant';
+          if (isBuds) input.value = `Variant ${index + 1}`;
+        });
+      };
+      const updateCategoryFields = () => {
+        const type = variantType();
+        const isLaptop = type === 'laptop';
+        systemMemorySection.hidden = !isLaptop;
+        systemMemoryInput.required = isLaptop;
+        variantTitle.textContent = type === 'phone'
+          ? 'Product colors and storage variants'
+          : 'Product colors and variants';
+        variantHint.textContent = type === 'phone'
+          ? 'Add each product color. Set a storage variant, price, and stock for every option.'
+          : type === 'buds'
+          ? 'Add each product color, then enter the price and stock for each option.'
+          : type === 'laptop'
+            ? 'Add each laptop color, system memory, and product variant with its price and stock.'
+            : 'Add each product color. Set a product variant, price, and stock for every option.';
+        addColorButton.textContent = 'Add color';
+        groupContainer.querySelectorAll('.variant-group').forEach(group => {
+          updateVariantOptionRows(group);
+        });
+        groupContainer.querySelectorAll('.variant-color-name-label').forEach(label => {
+          label.firstChild.textContent = 'Color name';
+        });
+      };
+      const updateDiscountPreview = () => {
+        const variantPrices = Array.from(groupContainer.querySelectorAll('.variant-option-row > label:nth-child(2) input'))
+          .filter(input => input.value.trim() !== '')
+          .map(input => Number(input.value))
+          .filter(price => Number.isFinite(price) && price >= 0);
+        const sellingPrice = variantPrices.length
+          ? Math.max(...variantPrices)
+          : (sellingPriceInput.value.trim() ? Number(sellingPriceInput.value) : NaN);
+        const originalPrice = Number(originalPriceInput.value);
+        if (!originalPriceInput.value.trim()) {
+          discountPreview.textContent = '';
+          return;
+        }
+        if (!Number.isFinite(sellingPrice) || !Number.isFinite(originalPrice) || originalPrice <= sellingPrice) {
+          discountPreview.textContent = 'Enter an original price higher than the selling price.';
+          return;
+        }
+        const percentage = Math.round((originalPrice - sellingPrice) / originalPrice * 100);
+        discountPreview.textContent = percentage > 0
+          ? `Discount: ${percentage}% (₹${(originalPrice - sellingPrice).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} off)`
+          : 'The discount is less than 1%.';
+      };
+      categorySelect.addEventListener('change', updateCategoryFields);
+      originalPriceInput.addEventListener('input', updateDiscountPreview);
+      sellingPriceInput.addEventListener('input', updateDiscountPreview);
+      let nextKey = 0;
+      let variants;
+      try {
+        variants = JSON.parse(dataInput.value || '[]');
+      } catch (error) {
+        console.error('Could not load saved product variants:', error);
+        variants = [];
+      }
+      const imageLabels = [
+        'Main Product Image',
+        'Secondary View (Angle 2)',
+        'Additional View (Angle 3)'
+      ];
+
+      const addOptionRow = (group, option = {}) => {
+        const row = document.createElement('div');
+        row.className = 'variant-option-row';
+        const optionIndex = group.querySelectorAll('.variant-option-row').length;
+        const type = variantType();
+        const optionSuggestions = ['256 GB', '512 GB', '1 TB'];
+        const suggestedLabel = optionSuggestions[optionIndex] || 'Enter variant';
+        row.innerHTML = '<label class="variant-option-label">' + optionLabelForType(type) + '<input type="text" maxlength="60" placeholder="' + suggestedLabel + '"></label><label>Price (₹)<input type="number" min="0" step="0.01" required></label><label>Stock<input type="number" min="0" step="1" value="0" required></label><button class="remove-row remove-variant-option" type="button">Remove</button>';
+        row.querySelector('.variant-option-label input').value = option.label || (type === 'buds' ? `Variant ${optionIndex + 1}` : '');
+        const numbers = row.querySelectorAll('input[type="number"]');
+        numbers[0].value = option.price ?? document.getElementById('price').value ?? '';
+        numbers[1].value = option.stock ?? 0;
+        group.querySelector('.variant-options').appendChild(row);
+        updateVariantOptionRows(group);
+      };
+
+      const addGroup = (variant = {}) => {
+        const key = nextKey++;
+        const group = document.createElement('section');
+        group.className = 'variant-group';
+        group.classList.toggle('buds-variant-group', variantType() === 'buds');
+        group.dataset.key = String(key);
+        group.dataset.images = JSON.stringify(Array.isArray(variant.images) ? variant.images : []);
+        group.innerHTML = '<div class="variant-group-header"><label class="variant-color-name-label">Color name<input class="variant-color-name" type="text" maxlength="60" required placeholder="Cosmic Orange"></label><button class="remove-row remove-color-variant" type="button">Remove color</button></div><label>Variant options and stock</label><div class="variant-options"></div><button class="secondary-button add-variant-option" type="button">Add option</button><label>Color product images (3 images, cropped and resized before upload)</label><div class="variant-image-grid"></div>';
+        group.querySelector('.variant-color-name').value = variant.color || '';
+        const initialOptions = variant.options && variant.options.length
+          ? variant.options
+          : (variantType() === 'buds' ? [{}] : [{ label: '256 GB' }, { label: '512 GB' }]);
+        initialOptions.forEach(option => addOptionRow(group, option));
+        imageLabels.forEach((label, imageIndex) => {
+          const slot = document.createElement('div');
+          slot.className = 'variant-image-slot';
+          const image = Array.isArray(variant.images) ? variant.images[imageIndex] : '';
+          slot.innerHTML = '<label>' + label + '</label><div class="variant-image-preview"></div><div class="slot-actions"><button class="btn-slot variant-image-choose" type="button">Choose Image</button><button class="btn-slot btn-crop variant-image-crop" type="button"' + (image ? '' : ' disabled') + '>Crop &amp; Resize</button></div><input class="variant-image-file" type="file" name="variantImages_' + key + '_' + imageIndex + '" accept="image/jpeg,image/png,image/webp" hidden>';
+          const preview = slot.querySelector('.variant-image-preview');
+          if (image) {
+            const savedImage = document.createElement('img');
+            savedImage.src = image;
+            savedImage.alt = label;
+            preview.appendChild(savedImage);
+          } else {
+            preview.textContent = 'Choose an image';
+          }
+          const imageInput = slot.querySelector('.variant-image-file');
+          slot.querySelector('.variant-image-choose').addEventListener('click', () => imageInput.click());
+          slot.querySelector('.variant-image-crop').addEventListener('click', () => {
+            const currentImage = preview.querySelector('img');
+            if (currentImage) window.openVariantCropper(currentImage.src, imageInput, preview, label);
+          });
+          imageInput.addEventListener('change', event => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+              return;
+            }
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+              alert('Choose a JPG, PNG, or WebP image.');
+              imageInput.value = '';
+              return;
+            }
+            imageInput.dataset.cropped = 'false';
+            const reader = new FileReader();
+            reader.onerror = () => alert(`Could not read the ${label.toLowerCase()}. Please choose another image.`);
+            reader.onload = () => window.openVariantCropper(reader.result, imageInput, preview, label);
+            reader.readAsDataURL(file);
+          });
+          group.querySelector('.variant-image-grid').appendChild(slot);
+        });
+        groupContainer.appendChild(group);
+        document.getElementById('base-price-stock').hidden = groupContainer.children.length > 0;
+      };
+
+      variants.forEach(addGroup);
+      updateCategoryFields();
+      updateDiscountPreview();
+      if (variants.length) {
+        nextKey = variants.length;
+        groupContainer.querySelectorAll('.variant-group').forEach(group => {
+          const key = Number(group.dataset.key);
+          if (Number.isInteger(key)) nextKey = Math.max(nextKey, key + 1);
+        });
+      }
+
+      document.getElementById('add-color-variant').addEventListener('click', () => {
+        if (groupContainer.children.length >= 20) {
+          alert('You can add up to 20 colors per product.');
+          return;
+        }
+        addGroup();
+      });
+
+      groupContainer.addEventListener('click', event => {
+        const group = event.target.closest('.variant-group');
+        if (!group) return;
+        if (event.target.closest('.add-variant-option')) {
+          if (group.querySelectorAll('.variant-option-row').length >= 20) {
+            alert('You can add up to 20 options per color.');
+            return;
+          }
+          addOptionRow(group);
+        } else if (event.target.closest('.remove-variant-option')) {
+          if (group.querySelectorAll('.variant-option-row').length === 1) {
+            alert('Each color must have at least one option.');
+          } else {
+            event.target.closest('.variant-option-row').remove();
+            updateVariantOptionRows(group);
+          }
+        } else if (event.target.closest('.remove-color-variant')) {
+          group.remove();
+          document.getElementById('base-price-stock').hidden = groupContainer.children.length > 0;
+        }
+      });
+      groupContainer.addEventListener('input', event => {
+        if (event.target.matches('.variant-option-row input[type="number"]')) updateDiscountPreview();
+      });
+
+      form.addEventListener('submit', event => {
+        const data = [];
+        const groups = Array.from(groupContainer.querySelectorAll('.variant-group'));
+        if (groups.length === 0) {
+          alert('Add at least one product color and its 3 product images.');
+          event.preventDefault();
+          document.getElementById('add-color-variant').focus();
+          return;
+        }
+        for (const group of groups) {
+          const color = group.querySelector('.variant-color-name').value.trim();
+          const images = JSON.parse(group.dataset.images || '[]');
+          const imageInputs = Array.from(group.querySelectorAll('.variant-image-file'));
+          for (let imageIndex = 0; imageIndex < imageInputs.length; imageIndex++) {
+            if (!imageInputs[imageIndex].files.length && !images[imageIndex]) {
+              alert(`Choose and crop the ${imageLabels[imageIndex]} for ${color || 'this color'}.`);
+              event.preventDefault();
+              imageInputs[imageIndex].closest('.variant-image-slot').scrollIntoView({ behavior: 'smooth', block: 'center' });
+              return;
+            }
+            if (imageInputs[imageIndex].files.length && imageInputs[imageIndex].dataset.cropped !== 'true') {
+              alert(`Crop and resize the ${imageLabels[imageIndex]} for ${color || 'this color'} before saving.`);
+              event.preventDefault();
+              imageInputs[imageIndex].closest('.variant-image-slot').scrollIntoView({ behavior: 'smooth', block: 'center' });
+              return;
+            }
+          }
+          const options = Array.from(group.querySelectorAll('.variant-option-row'), row => ({
+            label: row.querySelector('.variant-option-label input').value.trim(),
+            price: row.querySelectorAll('input[type="number"]')[0].value,
+            stock: row.querySelectorAll('input[type="number"]')[1].value
+          }));
+          if (!color || options.some(option => !option.label || !String(option.price).trim() || !Number.isFinite(Number(option.price)) || Number(option.price) < 0 || !String(option.stock).trim() || !Number.isSafeInteger(Number(option.stock)) || Number(option.stock) < 0)) {
+            alert('Enter a color, option name, valid price, and whole-number stock for every variant.');
+            event.preventDefault();
+            return;
+          }
+          data.push({
+            key: group.dataset.key,
+            color,
+            images,
+            options
+          });
+        }
+        if (data.length) {
+          document.getElementById('price').value = data[0].options[0].price;
+          document.getElementById('stock').value = data.reduce(
+            (total, variant) => total + variant.options.reduce((sum, option) => sum + Number(option.stock), 0),
+            0
+          );
+        }
+        dataInput.value = JSON.stringify(data);
+      });
+
+      const specificationRows = document.getElementById('specification-rows');
+      const specificationsData = document.getElementById('specifications-data');
+      let specifications = [];
+      try {
+        specifications = JSON.parse(specificationsData.value || '[]');
+      } catch (error) {
+        console.error('Could not load saved product specifications:', error);
+      }
+      const addSpecificationRow = ([name, value] = ['', '']) => {
+        const row = document.createElement('div');
+        row.className = 'editor-row specification-row';
+        row.innerHTML = '<label>Specification<input type="text" maxlength="100" placeholder="Processor"></label><label>Value<input type="text" maxlength="500" placeholder="Snapdragon 8 Gen 3"></label><button class="remove-row remove-specification" type="button">Remove</button>';
+        row.querySelectorAll('input')[0].value = name || '';
+        row.querySelectorAll('input')[1].value = value || '';
+        specificationRows.appendChild(row);
+      };
+      specifications.forEach(addSpecificationRow);
+      document.getElementById('add-specification').addEventListener('click', () => addSpecificationRow());
+      specificationRows.addEventListener('click', event => {
+        if (event.target.closest('.remove-specification')) event.target.closest('.specification-row').remove();
+      });
+      form.addEventListener('submit', event => {
+        const entries = Array.from(specificationRows.querySelectorAll('.specification-row'), row => {
+          const [name, value] = Array.from(row.querySelectorAll('input'), input => input.value.trim());
+          return [name, value];
+        }).filter(([name, value]) => name || value);
+        if (entries.some(([name, value]) => !name || !value)) {
+          alert('Enter both a specification name and value, or remove the empty row.');
+          event.preventDefault();
+          return;
+        }
+        specificationsData.value = JSON.stringify(entries);
+      });
+    })();
+  </script>
+
+  <script>
+    document.getElementById('add-coupon').addEventListener('click', () => {
+      const row = document.querySelector('.coupon-row').cloneNode(true);
+      row.querySelectorAll('input').forEach(input => { input.value = ''; });
+      row.querySelector('select').value = 'percentage';
+      document.getElementById('coupon-rows').appendChild(row);
+    });
+
+    document.addEventListener('click', event => {
+      if (!event.target.classList.contains('remove-row')) return;
+      const row = event.target.closest('.coupon-row');
+      const parent = row.parentElement;
+      if (parent.children.length === 1) {
+        row.querySelectorAll('input').forEach(input => { input.value = ''; });
+        const select = row.querySelector('select');
+        if (select) select.value = 'percentage';
+      } else {
+        row.remove();
+      }
+    });
+
+    (function() {
+      let currentCropper = null;
+      let activeVariantInput = null;
+      let activeVariantPreview = null;
+      let activeRatio = 1;
+      let isFlipped = false;
+      const openCropper = (src, subtitle) => {
+        const modal = document.getElementById('cropper-modal');
+        const cropperImg = document.getElementById('cropper-target-img');
+        const sub = document.getElementById('crop-modal-subtitle');
+
+        sub.textContent = subtitle;
+        cropperImg.src = src;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        if (currentCropper) {
+          currentCropper.destroy();
+          currentCropper = null;
+        }
+
+        const initCropper = function() {
+          if (currentCropper) currentCropper.destroy();
+          isFlipped = false;
+          currentCropper = new Cropper(cropperImg, {
+            aspectRatio: activeRatio,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 0.92,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: true,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            preview: '.cropper-preview-thumb'
+          });
+        };
+
+        if (cropperImg.complete && cropperImg.naturalWidth > 0) {
+          initCropper();
+        } else {
+          cropperImg.onload = initCropper;
+          cropperImg.onerror = function() {
+            alert('Could not load this image in the crop tool. Please choose a different image.');
+            window.closeCropperModal();
+          };
+        }
+      };
+
+      window.openVariantCropper = function(src, input, preview, label) {
+        activeVariantInput = input;
+        activeVariantPreview = preview;
+        openCropper(src, label);
+      };
+
+      window.setAspectRatio = function(ratio, btn) {
+        activeRatio = ratio;
+        document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        if (currentCropper) {
+          currentCropper.setAspectRatio(ratio);
+        }
+      };
+
+      window.cropperRotate = function(deg) {
+        if (currentCropper) currentCropper.rotate(deg);
+      };
+
+      window.cropperZoom = function(delta) {
+        if (currentCropper) currentCropper.zoom(delta);
+      };
+
+      window.cropperFlip = function() {
+        if (currentCropper) {
+          isFlipped = !isFlipped;
+          currentCropper.scaleX(isFlipped ? -1 : 1);
+        }
+      };
+
+      window.cropperReset = function() {
+        if (currentCropper) {
+          isFlipped = false;
+          currentCropper.reset();
+        }
+      };
+
+      window.closeCropperModal = function() {
+        const modal = document.getElementById('cropper-modal');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (activeVariantInput && activeVariantInput.dataset.cropped !== 'true') {
+          activeVariantInput.value = '';
+        }
+        if (currentCropper) {
+          currentCropper.destroy();
+          currentCropper = null;
+        }
+        activeVariantInput = null;
+        activeVariantPreview = null;
+      };
+
+      window.applyCropAndResize = function() {
+        if (!currentCropper || !activeVariantInput) return;
+
+        const resChoice = document.getElementById('crop-resolution-select').value;
+        let targetWidth = 800;
+        let targetHeight = 800;
+
+        if (resChoice === '600x600') {
+          targetWidth = 600;
+          targetHeight = 600;
+        } else if (resChoice === '1000x1000') {
+          targetWidth = 1000;
+          targetHeight = 1000;
+        } else if (resChoice === 'original') {
+          targetWidth = undefined;
+          targetHeight = undefined;
+        }
+
+        if (targetWidth && activeRatio && !isNaN(activeRatio) && activeRatio !== 1) {
+          targetHeight = Math.round(targetWidth / activeRatio);
+        }
+
+        const canvasOptions = {
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+          fillColor: '#ffffff'
+        };
+        if (targetWidth) canvasOptions.width = targetWidth;
+        if (targetHeight) canvasOptions.height = targetHeight;
+
+        let croppedCanvas;
+        try {
+          croppedCanvas = currentCropper.getCroppedCanvas(canvasOptions);
+        } catch (error) {
+          console.error('Could not crop the selected product image:', error);
+          alert('Could not crop this image. Please try again or choose another image.');
+          return;
+        }
+        if (!croppedCanvas) {
+          alert('Could not process cropped canvas. Please try again.');
+          return;
+        }
+
+        croppedCanvas.toBlob(function(blob) {
+          if (!blob) {
+            alert('Could not process the cropped image. Please try again.');
+            return;
+          }
+
+          const fileName = `product-image-${Date.now()}.jpg`;
+          const croppedFile = new File([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() });
+
+          if (activeVariantInput && activeVariantPreview) {
+            try {
+              const transfer = new DataTransfer();
+              transfer.items.add(croppedFile);
+              activeVariantInput.files = transfer.files;
+            } catch (error) {
+              console.error('Could not prepare the cropped image for upload:', error);
+              alert('Your browser could not prepare the cropped image for upload. Please try a current version of Chrome, Edge, or Firefox.');
+              return;
+            }
+
+            activeVariantInput.dataset.cropped = 'true';
+            const croppedDataUrl = croppedCanvas.toDataURL('image/jpeg', 0.92);
+            const previewImage = document.createElement('img');
+            previewImage.src = croppedDataUrl;
+            previewImage.alt = activeVariantPreview.closest('.variant-image-slot').querySelector('label').textContent;
+            activeVariantPreview.replaceChildren(previewImage);
+            const cropButton = activeVariantInput.closest('.variant-image-slot').querySelector('.variant-image-crop');
+            if (cropButton) cropButton.disabled = false;
+            window.closeCropperModal();
+            return;
+          }
+
+        }, 'image/jpeg', 0.92);
+      };
+    })();
+  </script>
 </body>
 </html>

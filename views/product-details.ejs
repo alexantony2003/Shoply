@@ -1,2 +1,1079 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Shoply | Product Details</title> <style> body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #20252b; } .container { max-width: 1000px; margin: 50px auto; padding: 20px; } .product { display: flex; gap: 40px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px #00000015; } .product-image { width: 450px; height: 400px; object-fit: cover; border-radius: 10px; } .details { flex: 1; } h1 { margin-top: 0; font-size: 32px; } .category { color: #667085; font-size: 16px; } .price { font-size: 28px; font-weight: bold; color: #2563eb; } .description { line-height: 1.6; } .stock { font-weight: bold; } .rating { color: #f59e0b; font-size: 18px; } .button { display: inline-block; margin-top: 20px; padding: 12px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; } .back { display: inline-block; margin-bottom: 20px; color: #2563eb; text-decoration: none; } </style> </head> <body> <main class="container"> <a class="back" href="/products"> ← Back to Products </a> <div class="product"> <div> <% if (product.image) { %> <img class="product-image" src="<%= product.image %>" alt="<%= product.name %>" > <% } else { %> <div class="product-image"> No Image </div> <% } %> </div> <div class="details"> <h1> <%= product.name %> </h1> <p class="category"> Category: <%= product.category %> </p> <p class="price"> ₹<%= product.price.toFixed(2) %> </p> <p class="description"> <%= product.description %> </p> <p class="stock"> Stock: <%= product.stock %> </p> <p class="rating"> ⭐ <%= product.rating %> / 5 </p> <% if (product.stock > 0) { %> <a class="button" href="#"> Add to Cart </a> <% } else { %> <p> <strong>Out of Stock</strong> </p> <% } %> </div> </div> </main> </body> </html>
+<%
+const productVariants = product && product.variants
+    ? Array.from(product.variants, variant => ({
+        color: variant.color,
+        colorCode: variant.colorCode || '#64748b',
+        images: Array.from(variant.images || []),
+        options: Array.from(variant.options || [], option => ({
+            label: option.label,
+            price: Number(option.price || product.price || 0),
+            stock: option.stock
+        }))
+    }))
+    : [];
+const productImages = productVariants.length
+    ? productVariants[0].images
+    : (product
+        ? (product.images && product.images.length ? Array.from(product.images) : (product.image ? [product.image] : []))
+        : []);
+const selectedStock = productVariants.length && productVariants[0].options.length
+    ? productVariants[0].options[0].stock
+    : (product ? product.stock : 0);
+const productSpecificationEntries = product && product.specifications
+    ? (typeof product.specifications.entries === 'function'
+        ? Array.from(product.specifications.entries())
+        : Object.entries(product.specifications))
+    : [];
+const hasSystemMemorySpecification = productSpecificationEntries.some(
+    ([name]) => String(name).trim().toLowerCase() === 'system memory'
+);
+const normalizedProductCategory = product && product.category
+    ? `${product.category.name || ''} ${product.category.slug || ''}`.toLowerCase()
+    : '';
+const productType = /\b(phone|phones|iphone|iphones|smartphone|smartphones|mobile|mobiles)\b/.test(normalizedProductCategory)
+    ? 'phone'
+    : (/\b(bud|buds|earbud|earbuds)\b/.test(normalizedProductCategory)
+        ? 'buds'
+        : (/\b(laptop|laptops|notebook|notebooks)\b/.test(normalizedProductCategory) ? 'laptop' : 'general'));
+const productVariantLabel = productType === 'phone'
+    ? 'Storage'
+    : (productType === 'buds' ? 'Product variant' : (productType === 'laptop' ? 'Laptop variant' : 'Variant'));
+const currentPrice = typeof selectedPrice === 'number'
+    ? selectedPrice
+    : (productVariants.length && productVariants[0].options.length
+        ? productVariants[0].options[0].price
+        : (product ? Number(product.price || 0) : 0));
+const currentOriginalPrice = typeof originalPrice !== 'undefined' && originalPrice && originalPrice > currentPrice
+    ? originalPrice
+    : null;
+const getHighlightIconType = highlight => {
+    const text = String(highlight).toLowerCase();
+    if (/\b(ram|memory)\b/.test(text)) return 'memory';
+    if (/\b(processor|chipset|snapdragon|dimensity|cpu)\b/.test(text)) return 'processor';
+    if (/\b(camera|megapixel|selfie|lens|\bmp\b)/.test(text)) return 'camera';
+    if (/\b(display|screen|inch|amoled|oled|refresh rate)\b/.test(text)) return 'display';
+    if (/\b(battery|mah|charging|charge)\b/.test(text)) return 'battery';
+    return 'feature';
+};
+%>
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shoply | Product Details</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--color-background);
+            color: var(--color-text);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .breadcrumbs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+
+        .breadcrumbs a {
+            color: var(--color-primary-text);
+            text-decoration: none;
+        }
+
+        .error-panel,
+        .section {
+            margin-top: 24px;
+            padding: 24px;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 12px;
+            background: var(--color-surface);
+        }
+
+        .error-panel {
+            border-color: var(--color-danger);
+            background: var(--color-surface);
+            color: var(--color-danger-text);
+        }
+
+        .product {
+            display: flex;
+            gap: 40px;
+            background: var(--color-surface);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgb(var(--color-primary-rgb) / 0.15);
+        }
+
+        .product.unavailable-product {
+            background: var(--color-surface-soft);
+            border: 1px solid var(--color-border);
+        }
+
+        .product.unavailable-product .product-gallery {
+            filter: grayscale(1);
+            opacity: .72;
+        }
+
+        .unavailable-notice {
+            margin: 0 0 18px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: var(--color-border-strong);
+            color: var(--color-text-on-solid);
+            font-weight: 700;
+        }
+
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-height: 440px;
+            object-fit: contain;
+            border-radius: 10px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            cursor: zoom-in;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .product-image:hover {
+            box-shadow: var(--shadow);
+        }
+
+        .product-gallery {
+            width: min(450px, 100%);
+            flex: 0 1 450px;
+        }
+
+        .product-image-stage {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            perspective: 900px;
+            touch-action: pan-y;
+        }
+
+        .newly-added-badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            z-index: 3;
+            padding: 7px 12px;
+            border-radius: 999px;
+            color: var(--color-accent-contrast);
+            background: var(--color-accent);
+            box-shadow: var(--shadow-sm);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            line-height: 1.3;
+            pointer-events: none;
+        }
+
+        .product-gallery .product-image {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .product-image-stage [data-parallax-image] {
+            transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0);
+            transition: transform .2s ease-out, box-shadow .25s ease;
+        }
+
+        .product-image-stage:hover [data-parallax-image] {
+            transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) scale(1.08);
+        }
+
+        .image-thumbnails {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .image-thumbnail {
+            width: 72px;
+            height: 72px;
+            padding: 3px;
+            overflow: hidden;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            background: var(--color-surface);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .image-thumbnail:hover {
+            border-color: var(--color-border);
+        }
+
+        .image-thumbnail.active {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgb(var(--color-primary-rgb) / 0.25);
+        }
+
+        .image-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.22s ease;
+        }
+
+        .image-thumbnail:hover img {
+            transform: scale(1.12);
+        }
+
+        /* Lightbox Modal */
+        .lightbox-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: var(--color-overlay);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lightbox-img {
+            max-width: 90vw;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            background: var(--color-surface);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -44px;
+            right: 0;
+            background: none;
+            border: 0;
+            color: var(--color-text-on-solid);
+            font-size: 36px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+
+        .lightbox-close:hover {
+            color: var(--color-accent-text);
+        }
+
+        .details {
+            flex: 1;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 32px;
+        }
+
+        .category {
+            color: var(--color-text-muted);
+            font-size: 16px;
+        }
+        .price {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--color-primary-text);
+        }
+
+        .description {
+            margin: 0;
+            color: var(--color-text);
+            font-size: 16px;
+            line-height: 1.85;
+            white-space: pre-line;
+            overflow-wrap: anywhere;
+        }
+
+        .description-card {
+            margin-top: 24px;
+        }
+
+        .description-card h2 {
+            margin: 0 0 12px;
+            color: var(--color-text);
+            font-size: 20px;
+        }
+
+        .product-specifications {
+            display: grid;
+            gap: 1px;
+            margin: 0;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .product-specifications > div {
+            display: grid;
+            grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+            gap: 16px;
+            padding: 12px 14px;
+            background: var(--color-surface);
+        }
+
+        .product-specifications dt {
+            color: var(--color-text);
+            font-weight: 700;
+        }
+
+        .product-specifications dd {
+            margin: 0;
+            color: var(--color-text);
+            overflow-wrap: anywhere;
+        }
+
+        .stock {
+            font-weight: bold;
+        }
+
+        .rating {
+            color: var(--color-accent-text);
+            font-size: 18px;
+        }
+
+        .rating-link {
+            color: var(--color-accent-text);
+            text-decoration: none;
+        }
+
+        .price-block {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .price-block .price {
+            margin: 8px 0;
+        }
+
+        .original-price {
+            color: var(--color-text-muted);
+            text-decoration: line-through;
+        }
+
+        .price-block .discount-badge {
+            padding: 0;
+            background: transparent;
+            color: var(--color-success-text);
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .price-block [hidden] {
+            display: none !important;
+        }
+
+        .discount-badge,
+        .stock-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: var(--color-success-soft);
+            color: var(--color-success-text);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .stock-badge.low,
+        .stock-badge.sold-out {
+            background: var(--color-accent-soft);
+            color: var(--color-accent-text);
+        }
+
+        .stock-badge.unavailable {
+            background: var(--color-danger-soft);
+            color: var(--color-danger-text);
+        }
+
+        .coupon {
+            margin: 10px 0;
+            padding: 12px 14px;
+            border: 1px dashed var(--color-border);
+            border-radius: 8px;
+            background: var(--color-surface);
+        }
+
+        .coupon select {
+            display: block;
+            width: 100%;
+            margin: 8px 0;
+            padding: 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-surface);
+            font: inherit;
+        }
+
+        .coupon-error {
+            color: var(--color-danger-text);
+        }
+
+        .coupon-success {
+            color: var(--color-success-text);
+        }
+
+        .highlights {
+            display: grid;
+            gap: 12px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .highlights li {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            line-height: 1.6;
+        }
+
+        .highlight-icon {
+            display: inline-flex;
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            margin-top: 1px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--color-primary-soft);
+            color: var(--color-text);
+        }
+
+        .highlight-icon svg {
+            width: 25px;
+            height: 25px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .highlights li > span:last-child {
+            padding-top: 11px;
+        }
+
+        .review-summary {
+            display: grid;
+            grid-template-columns: minmax(150px, .7fr) 1.3fr;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .rating-bar {
+            display: grid;
+            grid-template-columns: 42px 1fr 35px;
+            gap: 10px;
+            align-items: center;
+            margin: 7px 0;
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        .rating-track {
+            height: 8px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 99px;
+            background: var(--color-primary-soft);
+        }
+
+        .rating-track span {
+            display: block;
+            height: 100%;
+            background: var(--color-accent);
+        }
+
+        .review-card {
+            padding: 16px 0;
+            border-top: 1px solid var(--color-border-subtle);
+        }
+
+        .review-card p {
+            white-space: pre-wrap;
+        }
+
+        .review-form {
+            margin: 20px 0;
+            padding: 18px;
+            border-radius: 10px;
+            background: var(--color-surface);
+        }
+
+        .review-form label {
+            display: block;
+            margin: 12px 0 6px;
+            font-weight: 600;
+        }
+
+        .review-form select,
+        .review-form textarea {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font: inherit;
+        }
+
+        .review-form textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .related-products {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 16px;
+        }
+
+        .related-card {
+            padding: 14px;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 8px;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .related-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: var(--color-surface);
+        }
+
+        .related-card .product-image-frame {
+            position: relative;
+            overflow: hidden;
+            border-radius: 6px;
+            touch-action: pan-y;
+        }
+
+        .related-card [data-parallax-image] {
+            transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0);
+            transition: transform .22s ease-out;
+        }
+
+        .related-card:hover [data-parallax-image] {
+            transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) scale(1.08);
+        }
+
+        .related-card .price {
+            margin-bottom: 0;
+            font-size: 18px;
+        }
+
+        .rating-form {
+            margin-top: 20px;
+            padding: 16px;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 8px;
+        }
+
+        .rating-options {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .rating-options label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .rating-form button {
+            border: 0;
+            cursor: pointer;
+        }
+
+        .rating-message {
+            color: var(--color-success-text);
+        }
+
+        .button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: var(--color-primary);
+            color: var(--color-text-on-solid);
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--color-primary-text);
+            text-decoration: none;
+        }
+
+        .breadcrumb {
+            margin-bottom: 20px;
+            color: var(--color-text-muted);
+        }
+
+        .breadcrumb a {
+            color: var(--color-primary-text);
+            text-decoration: none;
+        }
+
+        .variant-selector {
+            margin: 18px 0;
+        }
+
+        .color-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 8px 0 14px;
+        }
+
+        .selected-color-label {
+            margin: 18px 0 10px;
+            font-size: 18px;
+        }
+
+        .color-option {
+            width: 98px;
+            height: 104px;
+            padding: 5px;
+            border: 2px solid var(--color-border);
+            border-radius: 14px;
+            background: var(--color-surface);
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .color-option[aria-pressed="true"] {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgb(var(--color-primary-rgb) / 0.18);
+        }
+
+        .color-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 9px;
+            background: var(--color-surface-soft);
+            transition: transform 0.22s ease;
+        }
+
+        .color-option:hover img {
+            transform: scale(1.1);
+        }
+
+        .variant-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .variant-option {
+            min-width: 150px;
+            padding: 11px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 14px;
+            background: var(--color-surface);
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .variant-option[aria-pressed="true"] {
+            border-color: var(--color-border-strong);
+            background: var(--color-surface-soft);
+            box-shadow: 0 0 0 1px var(--color-primary);
+        }
+
+        .variant-option-name,
+        .variant-option-stock,
+        .variant-option-price {
+            display: block;
+        }
+
+        .variant-option-name {
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--color-border-subtle);
+        }
+
+        .variant-option-stock {
+            margin-top: 7px;
+            color: var(--color-text-on-solid);
+            font-size: 13px;
+        }
+
+        .variant-option-stock.low {
+            color: var(--color-accent-text);
+        }
+
+        .variant-option-stock.sold-out {
+            color: var(--color-danger-text);
+        }
+
+        .variant-option-price {
+            margin-top: 8px;
+            font-weight: 700;
+        }
+
+        #continue-to-cart[hidden] {
+            display: none;
+        }
+
+        @media (max-width: 700px) {
+            .product {
+                flex-direction: column;
+            }
+
+            .product-gallery {
+                width: 100%;
+            }
+
+            .review-summary {
+                grid-template-columns: 1fr;
+            }
+
+        }
+    </style>
+</head>
+
+<body data-product-name="<%= product ? product.name : 'Product unavailable' %>">
+    <main class="container">
+        <% if (!product) { %>
+            <section class="error-panel" role="alert">
+                <h1>Product unavailable</h1>
+                <p><%= error || 'We could not find this product.' %></p>
+                <a class="button" href="/products">Browse products</a>
+            </section>
+        <% } else { %>
+        <nav class="breadcrumbs glass-card" aria-label="Breadcrumb">
+            <a href="/">Home</a><span aria-hidden="true">/</span>
+            <a href="/products">Products</a>
+            <% if (product.category) { %>
+                <span aria-hidden="true">/</span>
+                <a href="/products?category=<%= product.category._id %>"><%= product.category.name %></a>
+            <% } %>
+            <span aria-hidden="true">/</span><span aria-current="page"><%= product.name %></span>
+        </nav>
+
+        <% if (isUnavailable) { %>
+            <p class="unavailable-notice" role="status">Product is not available</p>
+        <% } %>
+        <div class="product <%= isUnavailable ? 'unavailable-product' : '' %>">
+            <div class="product-gallery">
+                <% if (productImages.length) { %>
+                    <div class="product-image-stage" data-parallax-area data-swipe-gallery data-image-list="<%= JSON.stringify(productImages) %>">
+                        <% if (isUnavailable) { %><span class="unavailable-badge">Unavailable</span><% } else if (product.showNewTag) { %><span class="newly-added-badge">Newly added</span><% } %>
+                        <img id="main-product-image" class="product-image" data-parallax-image data-gallery-image src="<%= productImages[0] %>" alt="<%= product.name %>" onclick="openLightbox()">
+                    </div>
+                    <% if (productImages.length > 1) { %>
+                        <div class="image-thumbnails" aria-label="Product images">
+                            <% productImages.forEach((image, index) => { %>
+                                <button class="image-thumbnail <%= index === 0 ? 'active' : '' %>" type="button" data-image="<%= image %>" aria-label="View product image <%= index + 1 %>">
+                                    <img src="<%= image %>" alt="">
+                                </button>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                <% } else { %>
+                    <div class="product-image" style="display:flex;align-items:center;justify-content:center;color:var(--color-text-muted);">No Image</div>
+                <% } %>
+            </div>
+
+            <div class="details">
+                <h1><%= product.name %></h1>
+                <p class="category"><%= product.brand %><% if (product.category) { %> · <%= product.category.name %><% } %></p>
+                <a class="rating-link" href="#reviews">
+                    <span class="rating">★ <%= Number(product.rating || 0).toFixed(1) %> / 5</span>
+                    (<%= totalReviews %> <%= totalReviews === 1 ? 'review' : 'reviews' %>)
+                </a>
+                <% if (productVariants.length) { %>
+                    <section class="variant-selector" id="product-variant-selector" data-product-variants="<%= JSON.stringify(productVariants) %>" aria-label="Choose product color and variant">
+                        <p class="selected-color-label"><strong>Selected Color:</strong> <span id="selected-color-name"><%= productVariants[0].color %></span></p>
+                        <div class="color-options" role="group" aria-label="Available colors">
+                            <% productVariants.forEach((variant, index) => { %>
+                                <button class="color-option" type="button" data-color-index="<%= index %>" aria-label="Select <%= variant.color %>" aria-pressed="<%= index === 0 ? 'true' : 'false' %>">
+                                    <img src="<%= variant.images[0] %>" alt="<%= variant.color %> product image">
+                                </button>
+                            <% }); %>
+                        </div>
+                        <p class="selected-variant-label"><strong><%= productVariantLabel %>:</strong> <span id="selected-variant-name"><%= productVariants[0].options[0].label %></span></p>
+                        <div id="product-variant-options" class="variant-options" role="group" aria-label="Choose <%= productVariantLabel.toLowerCase() %>">
+                            <% productVariants[0].options.forEach((option, index) => { %>
+                                <button class="variant-option" type="button" data-option-index="<%= index %>" aria-pressed="<%= index === 0 ? 'true' : 'false' %>">
+                                    <span class="variant-option-name"><%= option.label %></span>
+                                    <span class="variant-option-stock <%= Number(option.stock || 0) <= 0 ? 'sold-out' : (Number(option.stock || 0) < 10 ? 'low' : '') %>"><% if (Number(option.stock || 0) <= 0) { %>Out of stock<% } else { %>Stock: <%= Number(option.stock) %><% } %></span>
+                                    <span class="variant-option-price">₹<%= Number(option.price).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) %></span>
+                                </button>
+                            <% }); %>
+                        </div>
+                    </section>
+                <% } %>
+                <div class="price-block" id="product-price-block"
+                    data-discount-percentage="<%= Number.isFinite(Number(discountPercentage)) ? discountPercentage : 0 %>"
+                    data-fixed-original-price="<%= Number.isFinite(Number(product.originalPrice)) ? Number(product.originalPrice) : 0 %>"
+                    data-base-product-price="<%= Number(product.price || 0) %>"
+                    data-coupon-type="<%= appliedCoupon ? appliedCoupon.discountType : '' %>"
+                    data-coupon-value="<%= appliedCoupon ? appliedCoupon.discountValue : 0 %>"
+                    data-coupon-applied="<%= appliedCoupon ? 'true' : 'false' %>">
+                    <% if (appliedCoupon) { %>
+                        <p class="price" id="current-price">₹<%= Math.max(0, currentPrice - couponSavings).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></p>
+                        <span class="original-price" id="original-price">₹<%= currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                        <span class="discount-badge" id="price-badge">Coupon applied</span>
+                    <% } else { %>
+                        <p class="price" id="current-price">₹<%= currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></p>
+                        <span class="discount-badge" id="price-badge" <%= currentOriginalPrice && discountPercentage > 0 && !appliedCoupon ? '' : 'hidden' %>><% if (currentOriginalPrice && discountPercentage > 0 && !appliedCoupon) { %>&darr;<%= discountPercentage %>%<% } %></span>
+                        <span class="original-price" id="original-price" <%= currentOriginalPrice ? '' : 'hidden' %>><% if (currentOriginalPrice) { %>₹<%= Number(currentOriginalPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %><% } %></span>
+                    <% } %>
+                </div>
+                <% if (coupons.length && !isUnavailable && product.stock > 0) { %>
+                    <form class="coupon" id="coupon" action="/products/<%= product._id %>/coupon" method="post">
+                        <label for="coupon-code"><strong>Available coupons</strong></label>
+                        <select id="coupon-code" name="couponCode">
+                            <option value="">Choose a coupon or remove the applied coupon</option>
+                            <% coupons.forEach(coupon => { %>
+                                <option value="<%= coupon.code %>" <%= appliedCoupon && appliedCoupon.code === coupon.code ? 'selected' : '' %>>
+                                    <%= coupon.code %> — <%= coupon.discountType === 'percentage' ? `${coupon.discountValue}% off` : `₹${Number(coupon.discountValue).toFixed(2)} off` %>
+                                </option>
+                            <% }); %>
+                        </select>
+                        <button class="button" type="submit">Apply coupon</button>
+                    </form>
+                    <% if (couponError === 'invalid') { %>
+                        <p class="coupon-error" role="alert">That coupon is invalid or unavailable for this product.</p>
+                    <% } else if (appliedCoupon) { %>
+                        <p class="coupon-success" role="status">
+                            Coupon <strong><%= appliedCoupon.code %></strong> applied — you save ₹<span id="coupon-savings"><%= couponSavings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>.
+                        </p>
+                    <% } else if (couponMessage === 'cleared') { %>
+                        <p class="coupon-success" role="status">Applied coupon removed.</p>
+                    <% } %>
+                <% } %>
+                <% if (isUnavailable) { %>
+                    <p class="stock-badge unavailable" id="product-stock" role="status">This product is currently unavailable.</p>
+                <% } else if (selectedStock <= 0) { %>
+                    <p class="stock-badge sold-out" id="product-stock" role="status">Sold out · Out of stock</p>
+                <% } else if (selectedStock <= 5) { %>
+                    <p class="stock-badge low" id="product-stock" role="status">Only <span data-stock-count><%= selectedStock %></span> left in stock</p>
+                <% } else { %>
+                    <p class="stock-badge" id="product-stock" role="status"><span data-stock-count><%= selectedStock %></span> in stock</p>
+                <% } %>
+                <section class="description-card" aria-labelledby="product-description-title">
+                    <h2 id="product-description-title"><%= productSpecificationEntries.length ? 'Product description' : 'Specifications' %></h2>
+                    <p class="description"><%= product.description || 'Product details are coming soon.' %></p>
+                </section>
+                <% if (productSpecificationEntries.length) { %>
+                    <section class="description-card" aria-labelledby="product-specifications-title">
+                        <h2 id="product-specifications-title">Specifications</h2>
+                        <dl class="product-specifications">
+                            <% productSpecificationEntries.forEach(([name, value]) => { %>
+                                <div>
+                                    <dt><%= name %></dt>
+                                    <dd><%= value %></dd>
+                                </div>
+                            <% }); %>
+                            <% if (product.systemMemory && !hasSystemMemorySpecification) { %>
+                                <div>
+                                    <dt>System memory</dt>
+                                    <dd><%= product.systemMemory %></dd>
+                                </div>
+                            <% } %>
+                        </dl>
+                    </section>
+                <% } else if (product.systemMemory && !hasSystemMemorySpecification) { %>
+                    <section class="description-card" aria-labelledby="product-specifications-title">
+                        <h2 id="product-specifications-title">Specifications</h2>
+                        <dl class="product-specifications">
+                            <div>
+                                <dt>System memory</dt>
+                                <dd><%= product.systemMemory %></dd>
+                            </div>
+                        </dl>
+                    </section>
+                <% } %>
+                <% if (!isUnavailable) { %>
+                    <form id="add-to-cart-form" data-max-per-customer="<%= product.maxPerCustomer || 5 %>" action="/cart/add/<%= product._id %>" method="post" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0">
+                        <input type="hidden" name="colorIndex" value="<%= productVariants.length ? 0 : -1 %>">
+                        <input type="hidden" name="optionIndex" value="<%= productVariants.length ? 0 : -1 %>">
+                        <label for="cart-quantity">Quantity</label>
+                        <input id="cart-quantity" name="quantity" type="number" min="1" max="<%= Math.max(1, Math.min(selectedStock, product.maxPerCustomer || 5)) %>" value="1" required <%= selectedStock <= 0 ? 'disabled' : '' %>>
+                        <button class="button" id="add-to-cart-button" type="submit" <%= selectedStock <= 0 ? 'disabled' : '' %>>Add to cart</button>
+                    </form>
+                <% } %>
+                <form action="/wishlist/<%= product._id %>" method="post" style="display:inline-block;margin:0 0 16px"><button class="secondary" type="submit">Save to wishlist</button></form>
+                <a class="button" id="continue-to-cart" href="/cart" <%= isUnavailable || selectedStock <= 0 ? 'hidden' : '' %>>View cart</a>
+            </div>
+        </div>
+        <section class="section" aria-labelledby="highlights-title">
+            <h2 id="highlights-title">Product highlights</h2>
+            <% if (highlights.length) { %>
+                <ul class="highlights">
+                    <% highlights.forEach(highlight => { const iconType = getHighlightIconType(highlight); %>
+                        <li>
+                            <span class="highlight-icon" aria-hidden="true">
+                                <% if (iconType === 'memory') { %>
+                                    <svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="10" rx="1"></rect><path d="M8 10v4m4-4v4m4-4v4M8 3v4m4-4v4m4-4v4M8 17v4m4-4v4m4-4v4M2 10h3m-3 4h3m14-4h3m-3 4h3"></path></svg>
+                                <% } else if (iconType === 'processor') { %>
+                                    <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"></rect><path d="M9 9h6v6H9zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"></path></svg>
+                                <% } else if (iconType === 'camera') { %>
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="18" cy="8" r=".7"></circle></svg>
+                                <% } else if (iconType === 'display') { %>
+                                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M10 18h4"></path></svg>
+                                <% } else if (iconType === 'battery') { %>
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="7" width="17" height="10" rx="2"></rect><path d="M22 10v4M6 10h11v4H6z"></path></svg>
+                                <% } else { %>
+                                    <svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z"></path></svg>
+                                <% } %>
+                            </span>
+                            <span><%= highlight %></span>
+                        </li>
+                    <% }); %>
+                </ul>
+            <% } else { %>
+                <p>No product highlights have been provided.</p>
+            <% } %>
+        </section>
+        <section class="section" id="reviews" aria-labelledby="reviews-title">
+            <h2 id="reviews-title">Customer reviews</h2>
+            <div class="review-summary">
+                <div>
+                    <strong class="rating"><%= Number(product.rating || 0).toFixed(1) %> / 5 ★</strong>
+                    <p><%= totalReviews %> <%= totalReviews === 1 ? 'review' : 'reviews' %></p>
+                </div>
+                <div>
+                    <% [5, 4, 3, 2, 1].forEach(stars => { %>
+                        <div class="rating-bar">
+                            <span><%= stars %> ★</span>
+                            <span class="rating-track"><span style="width:<%= totalReviews ? (ratingCounts[stars] / totalReviews) * 100 : 0 %>%"></span></span>
+                            <span><%= ratingCounts[stars] %></span>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+            <% if (ratingMessage === 'saved') { %>
+                <p class="rating-message" role="status">Your review has been saved.</p>
+            <% } %>
+            <% if (user && !isUnavailable) { %>
+                <form class="review-form" action="/products/<%= product._id %>/rating" method="post">
+                    <h3><%= userRating ? 'Update your review' : 'Write a review' %></h3>
+                    <label for="review-rating">Your rating</label>
+                    <select id="review-rating" name="rating" required>
+                        <option value="">Choose a rating</option>
+                        <% [5, 4, 3, 2, 1].forEach(stars => { %>
+                            <option value="<%= stars %>" <%= userRating === stars ? 'selected' : '' %>><%= stars %> star<%= stars === 1 ? '' : 's' %></option>
+                        <% }); %>
+                    </select>
+                    <label for="review-comment">Review (optional)</label>
+                    <textarea id="review-comment" name="comment" maxlength="2000" placeholder="Share your experience"><%= userComment || '' %></textarea>
+                    <button class="button" type="submit"><%= userRating ? 'Update review' : 'Submit review' %></button>
+                </form>
+            <% } else if (!user && !isUnavailable) { %>
+                <p><a href="/login">Log in</a> to write a review.</p>
+            <% } %>
+            <% if (totalReviews) { %>
+                <% product.reviews.slice().sort((a, b) => b.createdAt - a.createdAt).forEach(review => { %>
+                    <article class="review-card">
+                        <strong><%= review.userName || (review.user && review.user.name) || 'Customer' %></strong>
+                        <span class="rating"> · ★ <%= review.rating %> / 5</span>
+                        <% if (review.createdAt) { %><small> · <%= new Date(review.createdAt).toLocaleDateString() %></small><% } %>
+                        <% if (review.comment) { %><p><%= review.comment %></p><% } %>
+                    </article>
+                <% }); %>
+            <% } else { %>
+                <p>No reviews yet. Be the first to share your experience.</p>
+            <% } %>
+        </section>
+        <% if (relatedProducts.length) { %>
+            <section class="section" aria-labelledby="related-title">
+                <h2 id="related-title">You may also like</h2>
+                <div class="related-products">
+                    <% relatedProducts.forEach(related => { %>
+                        <a class="related-card" href="/products/<%= related._id %>">
+                        <% const relatedImages = related.variants && related.variants.length && related.variants[0].images && related.variants[0].images.length
+                            ? related.variants[0].images
+                            : (related.images && related.images.length ? related.images : (related.image ? [related.image] : [])); %>
+                        <% const relatedImage = relatedImages[0]; %>
+                        <% if (relatedImage) { %>
+                            <div class="product-image-frame" data-parallax-area data-swipe-gallery data-image-list="<%= JSON.stringify(relatedImages) %>">
+                                    <% if (related.showNewTag) { %><span class="newly-added-badge">Newly added</span><% } %>
+                                    <img data-parallax-image data-gallery-image src="<%= relatedImage %>" alt="<%= related.name %>" loading="lazy">
+                                </div>
+                            <% } else { %>
+                                <div class="image">Product image</div>
+                            <% } %>
+                            <h3><%= related.name %></h3>
+                            <p class="rating">★ <%= Number(related.rating || 0).toFixed(1) %> / 5</p>
+                            <p class="price">₹<%= Number(related.price || 0).toFixed(2) %></p>
+                        </a>
+                    <% }); %>
+                </div>
+            </section>
+        <% } %>
+        <% } %>
+    </main>
+
+    <!-- LIGHTBOX MODAL -->
+    <% if (product) { %>
+    <div id="lightbox-modal" class="lightbox-modal" onclick="closeLightbox(event)">
+        <div class="lightbox-content">
+            <button type="button" class="lightbox-close" onclick="closeLightbox(event)" aria-label="Close enlarged view">&times;</button>
+            <img id="lightbox-image" class="lightbox-img" src="" alt="Enlarged product image">
+        </div>
+    </div>
+
+    <script>
+        function openLightbox() {
+            const mainImg = document.getElementById('main-product-image');
+            if (!mainImg || !mainImg.src) return;
+            const modal = document.getElementById('lightbox-modal');
+            const lightImg = document.getElementById('lightbox-image');
+            lightImg.src = mainImg.src;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox(e) {
+            if (e && e.target && e.target.id === 'lightbox-image') return;
+            const modal = document.getElementById('lightbox-modal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+    </script>
+    <% } %>
+</body>
+
+</html>

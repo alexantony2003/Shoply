@@ -1,0 +1,13 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply Admin | Offers</title><link rel="stylesheet" href="/styles.css"></head>
+<body><div class="layout"><%- include('partials/_sidebar') %><main class="main" style="padding:30px"><h1>Offers</h1>
+  <% if (error) { %><p class="error-panel" role="alert"><%= error %></p><% } %>
+  <section class="panel" style="padding:22px"><h2>Create offer</h2><form action="/admin/offers" method="post" style="display:grid;gap:12px;max-width:680px">
+    <label>Name <input name="name" maxlength="100" required></label>
+    <label>Offer type <select name="type"><option value="product">Product offer</option><option value="category">Category offer</option><option value="referral">Referral offer</option></select></label>
+    <label>Product <select name="product"><option value="">Choose product</option><% products.forEach(product => { %><option value="<%= product._id %>"><%= product.name %></option><% }) %></select></label>
+    <label>Category <select name="category"><option value="">Choose category</option><% categories.forEach(category => { %><option value="<%= category._id %>"><%= category.name %></option><% }) %></select></label>
+    <label>Discount <select name="discountType"><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select> <input name="discountValue" type="number" min="0.01" step="0.01" required></label>
+    <label>Ends at <input name="endsAt" type="datetime-local" required></label><button class="button" type="submit">Create offer</button>
+  </form></section>
+  <section class="panel" style="padding:22px;margin-top:20px;overflow:auto"><h2>Current offers</h2><table class="table"><thead><tr><th>Name</th><th>Type</th><th>Discount</th><th>Ends</th><th>Status</th><th></th></tr></thead><tbody><% offers.forEach(offer => { %><tr><td><%= offer.name %></td><td><%= offer.type %></td><td><%= offer.discountValue %><%= offer.discountType === 'percentage' ? '%' : '' %></td><td><%= new Date(offer.endsAt).toLocaleString() %></td><td><%= offer.active ? 'Active' : 'Inactive' %></td><td><form action="/admin/offers/<%= offer._id %>/toggle" method="post"><button class="secondary" type="submit"><%= offer.active ? 'Disable' : 'Enable' %></button></form></td></tr><% }) %></tbody></table></section>
+</main></div></body></html>

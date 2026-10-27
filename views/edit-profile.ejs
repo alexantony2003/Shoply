@@ -1,3 +1,72 @@
-<% const user = { name: 'Alex Antony', email: 'alex@example.com', phone: '+1 555 010 2026' }; %>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Shoply | Edit profile</title><style>body{margin:0;font-family:Arial,sans-serif;background:#f7f8fa;color:#20252b}.panel{max-width:620px;margin:34px auto;padding:26px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}label{display:block;margin:16px 0 6px;font-weight:bold}input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #d5dbe3;border-radius:6px}button{margin-top:22px;padding:12px 18px;border:0;border-radius:6px;background:#2563eb;color:#fff;font-weight:bold}a{color:#2563eb}</style></head><body><main class="panel"><p><a href="/profile">Back to profile</a></p><h1>Edit profile</h1><form action="/profile/edit" method="post"><label for="name">Full name</label><input id="name" name="name" type="text" value="<%= user.name %>" required><label for="email">Email address</label><input id="email" name="email" type="email" value="<%= user.email %>" required><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= user.phone %>"><label for="address">Default address</label><input id="address" name="address" type="text" value="123 Market Street, New York, NY 10001"><button type="submit">Save changes</button></form></main></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit profile | Shoply</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="account-page" data-user-role="<%= user && user.role ? user.role : 'customer' %>">
+  <header class="account-header site-header glass-card">
+    <a class="brand account-brand" href="/">Shoply</a>
+    <nav class="glass-card" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/products">Shop</a>
+      <a href="/cart">Cart</a>
+      <a href="/wishlist">Wishlist</a>
+      <a href="/profile">Account</a>
+      <% if (user && user.role === 'admin') { %>
+        <a class="admin-dashboard-link" href="/admin">Admin</a>
+      <% } %>
+      <button type="button" class="theme-toggle-btn store-theme-toggle" aria-label="Toggle light or dark theme">
+        <span class="theme-toggle-icon" aria-hidden="true"></span>
+        <span class="theme-text">Theme</span>
+      </button>
+    </nav>
+  </header>
+
+  <%- include('partials/category-nav') %>
+
+  <main class="account-shell account-edit-shell">
+    <a class="account-back-link" href="/profile"><span aria-hidden="true">←</span> Back to my profile</a>
+    <div class="account-heading account-edit-heading">
+      <div>
+        <p class="account-eyebrow">ACCOUNT SETTINGS</p>
+        <h1>Edit profile</h1>
+        <p>Update the details associated with your Shoply account.</p>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="account-alert account-alert-error" role="alert"><%= error %></div>
+    <% } %>
+
+    <section class="account-card account-edit-card" aria-labelledby="edit-details-title">
+      <div class="account-edit-card-heading">
+        <div class="account-edit-icon" aria-hidden="true">✎</div>
+        <div>
+          <h2 id="edit-details-title">Personal information</h2>
+          <p>Your name and contact details are used for your account.</p>
+        </div>
+      </div>
+      <form class="account-edit-form" action="/profile/edit" method="post">
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" value="<%= user.name || '' %>" maxlength="100" autocomplete="name" placeholder="Your full name" required>
+
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" value="<%= user.email || '' %>" maxlength="254" autocomplete="email" placeholder="you@example.com" required>
+        <small class="account-field-help">This is the email address you use to sign in.</small>
+
+        <label for="phone">Phone number</label>
+        <input id="phone" name="phone" type="tel" value="<%= user.phone || '' %>" minlength="7" maxlength="20" autocomplete="tel" placeholder="+1 555 123 4567" required>
+
+        <div class="account-form-actions">
+          <a class="account-button account-button-light" href="/profile">Cancel</a>
+          <button class="account-button" type="submit">Save changes</button>
+        </div>
+      </form>
+    </section>
+    <p class="account-privacy-note">Your profile information is only used to manage your Shoply account and orders.</p>
+  </main>
+</body>
+</html>

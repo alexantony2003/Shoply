@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= editMode ? "Edit address" : "Add address" %> | Shoply</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="account-page">
+  <header class="account-header site-header glass-card">
+    <a class="brand account-brand" href="/">Shoply</a>
+    <nav class="glass-card" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/products">Shop</a>
+      <a href="/cart">Cart</a>
+      <a href="/wishlist">Wishlist</a>
+      <a href="/profile">Account</a>
+      <button type="button" class="theme-toggle-btn store-theme-toggle" aria-label="Toggle light or dark theme">
+        <span class="theme-toggle-icon" aria-hidden="true"></span>
+        <span class="theme-text">Theme</span>
+      </button>
+    </nav>
+  </header>
+
+  <%- include('partials/category-nav') %>
+
+  <main class="account-shell account-edit-shell">
+    <a class="account-back-link" href="/profile"><span aria-hidden="true">←</span> Back to my profile</a>
+    <div class="account-heading account-edit-heading">
+      <div>
+        <p class="account-eyebrow">DELIVERY DETAILS</p>
+        <h1><%= editMode ? "Edit address" : "Add an address" %></h1>
+        <p>Save a delivery address for a quicker, easier checkout.</p>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="account-alert account-alert-error" role="alert"><%= error %></div>
+    <% } %>
+
+    <section class="account-card account-edit-card address-edit-card" aria-labelledby="address-details-title">
+      <div class="account-edit-card-heading">
+        <div class="account-edit-icon" aria-hidden="true">⌂</div>
+        <div>
+          <h2 id="address-details-title">Address details</h2>
+          <p>Enter the name and address where your order should be delivered.</p>
+        </div>
+      </div>
+      <form class="account-edit-form address-edit-form" action="<%= editMode ? `/profile/addresses/${address._id}/edit` : '/profile/addresses' %>" method="post">
+        <div class="address-fields-grid">
+          <div class="address-field">
+            <label for="label">Address label</label>
+            <input id="label" name="label" type="text" maxlength="40" value="<%= address ? address.label : 'Home' %>" placeholder="Home, Work, or Other" autocomplete="off" required>
+            <small class="account-field-help">A short name to help you recognize this address.</small>
+          </div>
+          <div class="address-field">
+            <label for="fullName">Full name</label>
+            <input id="fullName" name="fullName" type="text" maxlength="100" value="<%= address ? address.fullName : '' %>" autocomplete="name" placeholder="Recipient's full name" required>
+          </div>
+          <div class="address-field">
+            <label for="phone">Phone number</label>
+            <input id="phone" name="phone" type="tel" maxlength="20" value="<%= address ? address.phone : '' %>" autocomplete="tel" placeholder="+91 98765 43210" required>
+          </div>
+          <div class="address-field address-field-wide">
+            <label for="street">Street address</label>
+            <input id="street" name="street" type="text" maxlength="200" value="<%= address ? address.street : '' %>" autocomplete="street-address" placeholder="House, building, street, or area" required>
+          </div>
+          <div class="address-field">
+            <label for="city">City</label>
+            <input id="city" name="city" type="text" maxlength="100" value="<%= address ? address.city : '' %>" autocomplete="address-level2" placeholder="City" required>
+          </div>
+          <div class="address-field">
+            <label for="state">State</label>
+            <input id="state" name="state" type="text" maxlength="100" value="<%= address ? address.state : '' %>" autocomplete="address-level1" placeholder="State" required>
+          </div>
+          <div class="address-field">
+            <label for="postalCode">Postal code</label>
+            <input id="postalCode" name="postalCode" type="text" maxlength="20" value="<%= address ? address.postalCode : '' %>" autocomplete="postal-code" placeholder="Postal code" required>
+          </div>
+          <div class="address-field">
+            <label for="country">Country</label>
+            <input id="country" name="country" type="text" maxlength="100" value="<%= address ? address.country : 'India' %>" autocomplete="country-name" placeholder="Country" required>
+          </div>
+        </div>
+
+        <label class="address-default-option" for="isDefault">
+          <input id="isDefault" type="checkbox" name="isDefault" value="true" <%= address && address.isDefault ? "checked" : "" %>>
+          <span class="address-default-mark" aria-hidden="true"></span>
+          <span class="address-default-copy"><strong>Make this my default address</strong><small>Use this address automatically as your preferred delivery address.</small></span>
+        </label>
+
+        <div class="account-form-actions">
+          <a class="account-button account-button-light" href="/profile">Cancel</a>
+          <button class="account-button" type="submit"><%= editMode ? "Save address" : "Add address" %></button>
+        </div>
+      </form>
+    </section>
+    <p class="account-privacy-note">Your saved address is only used to deliver your Shoply orders.</p>
+  </main>
+</body>
+</html>

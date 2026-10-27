@@ -1,3 +1,323 @@
-<% const metrics = [{ label: 'Revenue', value: '$24,680', change: '+12.4%' }, { label: 'Orders', value: '348', change: '+8.2%' }, { label: 'Customers', value: '1,204', change: '+5.7%' }, { label: 'Products', value: '86', change: '+3 new' }]; const recentOrders = [{ id: 'SHP-1048', customer: 'Alex Antony', total: '$208.99', status: 'Delivered' }, { id: 'SHP-1047', customer: 'Jamie Rivera', total: '$129.00', status: 'Processing' }, { id: 'SHP-1046', customer: 'Morgan Taylor', total: '$64.50', status: 'Shipped' }]; %>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Shoply Admin | Dashboard</title><style>body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#20252b}.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.sidebar{padding:24px;background:#172033;color:#fff}.brand{font-size:23px;font-weight:bold;color:#93c5fd}.sidebar a{display:block;padding:13px 0;color:#d0d5dd;text-decoration:none}.main{padding:30px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.metric,.panel{padding:20px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.metric strong{display:block;font-size:25px;margin:8px 0}.change{color:#067647}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:13px;text-align:left;border-bottom:1px solid #e5e7eb}@media(max-width:800px){.layout{grid-template-columns:1fr}.sidebar{display:flex;gap:18px;flex-wrap:wrap}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.metrics{grid-template-columns:1fr}}</style></head><body><div class="layout"><aside class="sidebar"><div class="brand">Shoply Admin</div><a href="/admin">Dashboard</a><a href="/admin/products">Products</a><a href="/admin/orders">Orders</a><a href="/admin/users">Users</a><a href="/admin/settings">Settings</a><a href="/">View store</a></aside><main class="main"><h1>Dashboard</h1><section class="metrics"><% metrics.forEach(metric => { %><article class="metric"><span><%= metric.label %></span><strong><%= metric.value %></strong><span class="change"><%= metric.change %></span></article><% }); %></section><section class="panel"><h2>Recent orders</h2><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody><% recentOrders.forEach(order => { %><tr><td><%= order.id %></td><td><%= order.customer %></td><td><%= order.total %></td><td><%= order.status %></td></tr><% }); %></tbody></table></section></main></div></body></html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shoply Admin | Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="layout">
+        <%- include('partials/_sidebar') %>
+        <main class="main admin-dashboard-main">
+            <!-- Header Section -->
+            <header class="dash-page-header">
+                <div>
+                    <span class="dash-eyebrow">ADMIN CONSOLE</span>
+                    <h1>Dashboard</h1>
+                    <p class="dash-subtitle">Overview of sales revenue, order volumes, and top-selling performances.</p>
+                </div>
+                <div class="dash-header-status">
+                    <span class="dash-status-dot"></span>
+                    <span>Live Store Analytics</span>
+                </div>
+            </header>
+
+            <!-- Metrics Cards -->
+            <%- include('partials/_metrics', { metrics }) %>
+
+            <!-- Sales Analytics Chart Section -->
+            <section class="panel glass-card dashboard-chart-card">
+                <div class="dash-chart-header">
+                    <div>
+                        <h2>Sales & Revenue Analytics</h2>
+                        <p class="dash-card-subtitle">Real-time revenue and order trend analysis</p>
+                    </div>
+                    <div class="dash-filter-group" role="group" aria-label="Sales filter">
+                        <button type="button" class="dash-filter-btn" data-filter="weekly">Weekly</button>
+                        <button type="button" class="dash-filter-btn is-active" data-filter="monthly">Monthly</button>
+                        <button type="button" class="dash-filter-btn" data-filter="yearly">Yearly</button>
+                    </div>
+                </div>
+
+                <div class="dash-chart-canvas-wrap">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Top 10 Best Sellers Grid -->
+            <section class="dash-top-grid">
+                <!-- Top 10 Best Selling Products -->
+                <article class="panel glass-card dash-top-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>Top 10 Products</h2>
+                            <p class="dash-card-subtitle">Best selling items by units sold</p>
+                        </div>
+                        <span class="dash-card-badge">Top 10</span>
+                    </div>
+
+                    <% if (!topProducts || !topProducts.length) { %>
+                        <p class="empty">No sales data recorded yet.</p>
+                    <% } else { %>
+                        <div class="dash-top-list">
+                            <% topProducts.forEach(prod => { %>
+                                <div class="dash-top-item">
+                                    <span class="dash-rank-badge rank-<%= prod.rank %>"><%= prod.rank %></span>
+                                    <div class="dash-item-info">
+                                        <strong class="dash-item-title"><%= prod.name %></strong>
+                                        <span class="dash-item-meta"><%= prod.category %> &bull; <%= prod.brand %></span>
+                                    </div>
+                                    <div class="dash-item-stats">
+                                        <span class="dash-sold-count"><%= prod.sold %> sold</span>
+                                        <strong class="dash-revenue-val">₹<%= prod.revenue.toLocaleString('en-IN') %></strong>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </article>
+
+                <!-- Top 10 Best Selling Categories -->
+                <article class="panel glass-card dash-top-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>Top 10 Categories</h2>
+                            <p class="dash-card-subtitle">Most popular store categories</p>
+                        </div>
+                        <span class="dash-card-badge">Top 10</span>
+                    </div>
+
+                    <% if (!topCategories || !topCategories.length) { %>
+                        <p class="empty">No sales data recorded yet.</p>
+                    <% } else { %>
+                        <div class="dash-top-list">
+                            <% 
+                                const maxCatSold = Math.max(...topCategories.map(c => c.sold), 1);
+                                topCategories.forEach(cat => { 
+                                    const sharePct = Math.round((cat.sold / maxCatSold) * 100);
+                            %>
+                                <div class="dash-top-item">
+                                    <span class="dash-rank-badge rank-<%= cat.rank %>"><%= cat.rank %></span>
+                                    <div class="dash-item-info">
+                                        <strong class="dash-item-title"><%= cat.name %></strong>
+                                        <div class="dash-progress-track">
+                                            <div class="dash-progress-bar" style="width: <%= sharePct %>%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="dash-item-stats">
+                                        <span class="dash-sold-count"><%= cat.sold %> items</span>
+                                        <strong class="dash-revenue-val">₹<%= cat.revenue.toLocaleString('en-IN') %></strong>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </article>
+
+                <!-- Top 10 Best Selling Brands -->
+                <article class="panel glass-card dash-top-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>Top 10 Brands</h2>
+                            <p class="dash-card-subtitle">Top brands by product volume</p>
+                        </div>
+                        <span class="dash-card-badge">Top 10</span>
+                    </div>
+
+                    <% if (!topBrands || !topBrands.length) { %>
+                        <p class="empty">No sales data recorded yet.</p>
+                    <% } else { %>
+                        <div class="dash-top-list">
+                            <% 
+                                const maxBrandSold = Math.max(...topBrands.map(b => b.sold), 1);
+                                topBrands.forEach(brand => { 
+                                    const sharePct = Math.round((brand.sold / maxBrandSold) * 100);
+                            %>
+                                <div class="dash-top-item">
+                                    <span class="dash-rank-badge rank-<%= brand.rank %>"><%= brand.rank %></span>
+                                    <div class="dash-item-info">
+                                        <strong class="dash-item-title"><%= brand.name %></strong>
+                                        <div class="dash-progress-track">
+                                            <div class="dash-progress-bar" style="width: <%= sharePct %>%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="dash-item-stats">
+                                        <span class="dash-sold-count"><%= brand.sold %> items</span>
+                                        <strong class="dash-revenue-val">₹<%= brand.revenue.toLocaleString('en-IN') %></strong>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </article>
+            </section>
+
+            <!-- Recent Orders Section -->
+            <%- include('partials/_recent-orders', { recentOrders }) %>
+        </main>
+    </div>
+
+    <!-- Chart Setup and Interaction Script -->
+    <script>
+    (function () {
+        const rawChartData = <%- JSON.stringify(chartData || {}) %>;
+        const canvas = document.getElementById('salesChart');
+        if (!canvas) return;
+
+        let activeFilter = 'monthly';
+        let chartInstance = null;
+
+        function getChartConfig(filter) {
+            const data = rawChartData[filter] || { labels: [], revenue: [], orders: [] };
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(203, 213, 225, 0.4)';
+            const tickColor = isDark ? '#94a3b8' : '#64748b';
+            const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(23, 32, 51, 0.95)';
+
+            return {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Revenue (₹)',
+                            data: data.revenue,
+                            borderColor: isDark ? '#007ba7' : '#0f766e',
+                            backgroundColor: isDark ? 'rgba(0, 123, 167, 0.15)' : 'rgba(15, 118, 110, 0.12)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: isDark ? '#007ba7' : '#0f766e',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'yRevenue'
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Orders',
+                            data: data.orders,
+                            backgroundColor: isDark ? 'rgba(255, 45, 149, 0.75)' : 'rgba(249, 115, 22, 0.75)',
+                            hoverBackgroundColor: isDark ? '#ff2d95' : '#ea580c',
+                            borderRadius: 6,
+                            barPercentage: 0.5,
+                            yAxisID: 'yOrders'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                color: tickColor,
+                                font: {
+                                    weight: 600,
+                                    family: 'inherit'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: tooltipBg,
+                            titleFont: { weight: 700 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function (context) {
+                                    if (context.dataset.yAxisID === 'yRevenue') {
+                                        return ' Revenue: ₹' + Number(context.raw || 0).toLocaleString('en-IN');
+                                    }
+                                    return ' Orders: ' + context.raw;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: gridColor
+                            },
+                            ticks: {
+                                color: tickColor,
+                                font: { weight: 600 }
+                            }
+                        },
+                        yRevenue: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor
+                            },
+                            ticks: {
+                                color: tickColor,
+                                callback: function (val) {
+                                    if (val >= 100000) return '₹' + (val / 100000).toFixed(1) + 'L';
+                                    if (val >= 1000) return '₹' + (val / 1000).toFixed(0) + 'k';
+                                    return '₹' + val;
+                                }
+                            }
+                        },
+                        yOrders: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                color: tickColor,
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        if (typeof Chart !== 'undefined') {
+            chartInstance = new Chart(canvas, getChartConfig(activeFilter));
+
+            window.addEventListener('themechange', function () {
+                if (chartInstance) {
+                    chartInstance.destroy();
+                    chartInstance = new Chart(canvas, getChartConfig(activeFilter));
+                }
+            });
+
+            document.querySelectorAll('.dash-filter-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const filter = this.dataset.filter;
+                    if (filter === activeFilter) return;
+
+                    document.querySelectorAll('.dash-filter-btn').forEach(b => b.classList.remove('is-active'));
+                    this.classList.add('is-active');
+
+                    activeFilter = filter;
+                    if (chartInstance) {
+                        chartInstance.destroy();
+                        chartInstance = new Chart(canvas, getChartConfig(activeFilter));
+                    }
+                });
+            });
+        }
+    })();
+    </script>
+</body>
+
+</html>

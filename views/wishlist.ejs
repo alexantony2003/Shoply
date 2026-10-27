@@ -1,7 +1,29 @@
-<% const wishlist = [
-  { id: 3, name: 'Everyday Sneakers', category: 'Footwear', price: 64.50, availability: 'In stock' },
-  { id: 4, name: 'Ceramic Desk Lamp', category: 'Home', price: 42.00, availability: 'In stock' },
-  { id: 5, name: 'Cotton Overshirt', category: 'Clothing', price: 55.00, availability: 'Coming soon' }
-]; %>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Shoply | Wishlist</title><style>body{margin:0;font-family:Arial,sans-serif;background:#f7f8fa;color:#20252b}.content{max-width:1000px;margin:34px auto;padding:0 20px}.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.product{padding:20px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.image{height:140px;display:grid;place-items:center;background:#eef2ff;border-radius:6px;color:#64748b}.button{display:inline-block;padding:10px 14px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none}.remove{margin-left:12px;color:#b42318}</style></head><body><main class="content"><h1>My wishlist</h1><p>Products saved for later.</p><section class="products"><% wishlist.forEach(item => { %><article class="product"><div class="image">Product image</div><h2><%= item.name %></h2><p><%= item.category %> | <%= item.availability %></p><p><strong>$<%= item.price.toFixed(2) %></strong></p><% if (item.availability === 'In stock') { %><a class="button" href="/cart?add=<%= item.id %>">Add to cart</a><% } %><a class="remove" href="/wishlist/remove/<%= item.id %>">Remove</a></article><% }); %></section></main></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shoply | Wishlist</title><link rel="stylesheet" href="/styles.css">
+</head>
+<body><main class="content" style="max-width:1100px;margin:36px auto;padding:0 20px">
+  <p><a href="/products">Continue shopping</a></p><h1>My wishlist</h1><p>Products saved for later.</p>
+  <% if (!products.length) { %><section class="panel"><p>Your wishlist is empty.</p><a class="button" href="/products">Browse products</a></section><% } else { %>
+    <section class="products"><% products.forEach(product => { %>
+      <%
+        const isCategoryUnlisted = !product.category || product.category.status === false;
+        const isUnavailable = product.status !== 'active' || isCategoryUnlisted;
+      %>
+      <article class="product <%= isUnavailable ? 'unavailable-product' : '' %>">
+      <% if (product.image) { %>
+        <div style="position:relative">
+          <% if (isUnavailable) { %><span class="unavailable-badge">Unavailable</span><% } %>
+          <img class="image" src="<%= product.image %>" alt="<%= product.name %>">
+        </div>
+      <% } %>
+      <h2><a href="/products/<%= product._id %>"><%= product.name %></a></h2>
+      <p><%= product.category ? product.category.name : 'Uncategorised' %></p>
+      <% if (isUnavailable) { %><p class="unavailable-label" role="status">Unavailable</p><% } %>
+      <p class="price">₹<%= Number(product.price).toFixed(2) %></p>
+      <form action="/wishlist/<%= product._id %>/remove" method="post"><button class="secondary" type="submit">Remove</button></form>
+    </article><% }); %></section>
+  <% } %>
+</main></body></html>

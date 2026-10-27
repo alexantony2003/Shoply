@@ -1,8 +1,61 @@
-<% const cartItems = [
-  { id: 1, name: 'Minimal Leather Backpack', price: 79.99, quantity: 1 },
-  { id: 2, name: 'Wireless Headphones', price: 129.00, quantity: 1 }
-]; const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0); const shipping = 8.00; %>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Shoply | Cart</title>
-<style>body{margin:0;font-family:Arial,sans-serif;background:#f7f8fa;color:#20252b}header{padding:18px 6%;background:#fff;border-bottom:1px solid #e5e7eb}header a{color:#2563eb;text-decoration:none;font-size:24px;font-weight:bold}.content{max-width:980px;margin:34px auto;padding:0 20px}.layout{display:grid;grid-template-columns:1fr 300px;gap:24px}.items,.summary{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:22px}.item{display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid #e5e7eb}.item:last-child{border:0}.price{font-weight:bold}.summary p{display:flex;justify-content:space-between}.total{font-size:20px;font-weight:bold}.button{display:block;padding:12px;text-align:center;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px}@media(max-width:700px){.layout{grid-template-columns:1fr}}</style><link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script></head>
-<body><header><a href="/">Shoply</a></header><main class="content"><h1>Your cart</h1><div class="layout"><section class="items"><% cartItems.forEach(item => { %><article class="item"><div><h3><%= item.name %></h3><p>Quantity: <%= item.quantity %></p><a href="/cart/remove/<%= item.id %>">Remove</a></div><p class="price">$<%= (item.price * item.quantity).toFixed(2) %></p></article><% }); %></section><aside class="summary"><h2>Order summary</h2><p><span>Subtotal</span><span>$<%= subtotal.toFixed(2) %></span></p><p><span>Shipping</span><span>$<%= shipping.toFixed(2) %></span></p><p class="total"><span>Total</span><span>$<%= (subtotal + shipping).toFixed(2) %></span></p><a class="button" href="/checkout">Proceed to checkout</a></aside></div></main></body></html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply | Cart</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<main class="content" style="max-width:1000px;margin:36px auto;padding:0 20px">
+  <p><a href="/products">Continue shopping</a></p>
+  <h1>Your cart</h1>
+  <% if (message === "added") { %><p role="status">Product added to cart.</p><% } %>
+  <% if (message === "coupon-applied") { %><p role="status">Coupon applied.</p><% } %>
+  <% if (message === "coupon-removed") { %><p role="status">Coupon removed.</p><% } %>
+  <% if (message === "invalid-coupon") { %><p role="alert">That coupon is not valid for the items in your cart.</p><% } %>
+  <% if (!items.length) { %><section class="panel"><p>Your cart is empty.</p><a class="button" href="/products">Browse products</a></section><% } else { %>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px">
+      <section class="panel">
+        <% items.forEach(item => { %>
+          <article style="display:flex;justify-content:space-between;gap:18px;padding:16px 0;border-bottom:1px solid var(--color-border)">
+            <div>
+              <% if (item.product) { %>
+                <h2><a href="/products/<%= item.product._id %>"><%= item.product.name %></a></h2>
+                <% if (item.selection.color || item.selection.variant) { %><p><%= [item.selection.color, item.selection.variant].filter(Boolean).join(" · ") %></p><% } %>
+                <p><%= item.unavailable ? "Unavailable or out of stock" : `${item.selection.stock} in stock` %></p>
+                <% if (item.quantityUnavailable) { %><p role="alert">Your cart quantity is greater than the remaining stock. Reduce it before checkout.</p><% } %>
+                <% if (!item.unavailable) { %>
+                  <form action="/cart/update" method="post" style="display:inline-flex;gap:8px;align-items:center">
+                    <input type="hidden" name="productId" value="<%= item.product._id %>">
+                    <input type="hidden" name="colorIndex" value="<%= item.colorIndex %>">
+                    <input type="hidden" name="optionIndex" value="<%= item.optionIndex %>">
+                    <label>Quantity <input type="number" name="quantity" min="1" max="<%= Math.min(item.selection.stock, item.product.maxPerCustomer || 5) %>" value="<%= item.quantity %>" required></label>
+                    <button type="submit">Update</button>
+                  </form>
+                <% } %>
+                <form action="/cart/remove" method="post" style="display:inline">
+                  <input type="hidden" name="productId" value="<%= item.product._id %>">
+                  <input type="hidden" name="colorIndex" value="<%= item.colorIndex %>">
+                  <input type="hidden" name="optionIndex" value="<%= item.optionIndex %>">
+                  <button type="submit">Remove</button>
+                </form>
+              <% } else { %>
+                <p>This product is no longer available.</p>
+                <form action="/cart/remove" method="post">
+                  <input type="hidden" name="productId" value="<%= item.productId %>">
+                  <input type="hidden" name="colorIndex" value="<%= item.colorIndex %>">
+                  <input type="hidden" name="optionIndex" value="<%= item.optionIndex %>">
+                  <button type="submit">Remove</button>
+                </form>
+              <% } %>
+            </div>
+            <% if (item.product) { %><strong>₹<%= Number(item.lineTotal || 0).toFixed(2) %></strong><% } %>
+          </article>
+        <% }); %>
+      </section>
+      <aside class="panel"><h2>Order summary</h2><p>Subtotal <strong>₹<%= subtotal.toFixed(2) %></strong></p>
+        <% if (coupon && coupon.code) { %><p>Coupon <strong><%= coupon.code %></strong>: -₹<%= coupon.discount.toFixed(2) %></p><form action="/cart/coupon/remove" method="post"><button class="secondary" type="submit">Remove coupon</button></form><% } else { %>
+          <form action="/cart/coupon" method="post"><label>Coupon code <input name="couponCode" maxlength="32" required></label><button class="secondary" type="submit">Apply coupon</button></form>
+        <% } %>
+        <p><strong>Total ₹<%= total.toFixed(2) %></strong></p><a class="button" href="/checkout">Proceed to checkout</a></aside>
+    </div>
+  <% } %>
+</main>
+</body>
+</html>

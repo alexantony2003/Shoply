@@ -6,13 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Shoply Admin | Products</title>
+    <link rel="stylesheet" href="/styles.css">
 
     <style>
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            color: #20252b;
+            background: var(--color-background);
+            color: var(--color-text);
         }
 
         .main {
@@ -29,16 +30,16 @@
 
         .button {
             padding: 11px 16px;
-            background: #2563eb;
-            color: #fff;
+            background: var(--color-primary);
+            color: var(--color-text-on-solid);
             text-decoration: none;
             border-radius: 6px;
         }
 
         .panel {
             overflow: auto;
-            background: #fff;
-            border: 1px solid #e5e7eb;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
             border-radius: 8px;
             margin-top: 20px;
         }
@@ -52,11 +53,11 @@
         .table td {
             padding: 15px;
             text-align: left;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--color-border-subtle);
         }
 
         .link {
-            color: #2563eb;
+            color: var(--color-primary-text);
             margin-right: 12px;
             text-decoration: none;
         }
@@ -64,16 +65,30 @@
         .delete {
             color: red;
         }
+
+        .status-form {
+            display: inline;
+        }
+
+        .status-button {
+            padding: 7px 10px;
+            border: 0;
+            border-radius: 5px;
+            color: var(--color-text-on-solid);
+            background: var(--color-danger);
+            cursor: pointer;
+        }
+
+        .status-button.unblock {
+            background: var(--color-success);
+        }
     </style>
 </head>
 
 <body>
-
+    <div class="layout">
+        <%- include('partials/_sidebar') %>
     <main class="main">
-
-        <p>
-            <a href="/admin">Admin dashboard</a>
-        </p>
 
         <div class="top">
 
@@ -91,10 +106,13 @@
 
                 <thead>
                     <tr>
+                        <th>Product ID</th>
                         <th>Product</th>
                         <th>Category</th>
+                        <th>Brand</th>
                         <th>Price</th>
                         <th>Stock</th>
+                        <th>Rating</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -105,7 +123,7 @@
                     <% if (products.length === 0) { %>
 
                         <tr>
-                            <td colspan="6">
+                            <td colspan="9">
                                 No products found.
                             </td>
                         </tr>
@@ -118,15 +136,36 @@
                         <tr>
 
                             <td>
-                                <%= product.name %>
+                                <%= product.productCode || 'Legacy product' %>
                             </td>
 
                             <td>
-                                <%= product.category %>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <% const thumb = product.image || (product.images && product.images[0]); %>
+                                    <% if (thumb) { %>
+                                        <img src="<%= thumb %>" alt="<%= product.name %>" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--color-border-subtle); background: var(--color-surface); flex-shrink: 0;">
+                                    <% } else { %>
+                                        <div style="width: 44px; height: 44px; border-radius: 6px; background: var(--color-primary-soft); display: grid; place-items: center; font-size: 10px; color: var(--color-text-muted); flex-shrink: 0;">No img</div>
+                                    <% } %>
+                                    <span style="font-weight: 600;"><%= product.name %></span>
+                                </div>
                             </td>
 
                             <td>
-                                ₹<%= product.price.toFixed(2) %>
+                                <%= product.category ? product.category.name : 'Uncategorized' %>
+                            </td>
+
+                            <td>
+                                <%= product.brand %>
+                            </td>
+
+                            <td>
+                                <% if (product.originalPrice > product.price) { %>
+                                    <span style="color:var(--color-success-text);font-weight:800;">&darr;<%= Math.round((product.originalPrice - product.price) / product.originalPrice * 100) %>%</span>
+                                    <del style="color:var(--color-text-muted);">₹<%= product.originalPrice.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) %></del>
+                                    <br>
+                                <% } %>
+                                ₹<%= Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) %>
                             </td>
 
                             <td>
@@ -134,7 +173,14 @@
                             </td>
 
                             <td>
-                                <%= product.status %>
+                                <%= Number(product.rating || 0).toFixed(1) %> / 5
+                                <% if (product.reviews && product.reviews.length) { %>
+                                    <small>(<%= product.reviews.length %>)</small>
+                                <% } %>
+                            </td>
+
+                            <td>
+                                <strong><%= product.status === 'active' ? 'Available' : 'Blocked' %></strong>
                             </td>
 
                             <td>
@@ -145,11 +191,11 @@
                                     Edit
                                 </a>
 
-                                <a
-                                    class="link delete"
-                                    href="/admin/products/<%= product._id %>/delete">
-                                    Delete
-                                </a>
+                                <form class="status-form" action="/admin/products/<%= product._id %>/toggle-status" method="post">
+                                    <button class="status-button <%= product.status === 'active' ? '' : 'unblock' %>" type="submit">
+                                        <%= product.status === 'active' ? 'Block' : 'Unblock' %>
+                                    </button>
+                                </form>
 
                             </td>
 
@@ -164,6 +210,7 @@
         </section>
 
     </main>
+    </div>
 
 </body>
 

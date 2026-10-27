@@ -5,39 +5,88 @@ const userRouter = express.Router();
 const {
     createUser,
     getUsers,
-    loginUser,
-    verifyOTP
+    verifyOTP,
+    resendOTP,
+    loginUser
 } = require("../controllers/userController");
 
 
-/* REGISTER PAGE */
-userRouter.get("/register", (req, res) => {
-    res.render("register");
+// ========================================
+// REGISTER PAGE
+// ========================================
+
+const { redirectIfLoggedIn, adminAuth } = require('../middlewares/authMiddleware');
+userRouter.get("/register", redirectIfLoggedIn, (req, res) => {
+    res.render("register", { error: req.query.error || null, formData: {} });
+});
+
+userRouter.get("/login", redirectIfLoggedIn, (req, res) => {
+    res.render("login", { error: req.query.error || null, success: req.query.success || null });
 });
 
 
-/* REGISTER USER */
-userRouter.post("/register", createUser);
+// ========================================
+// REGISTER
+// ========================================
+
+userRouter.post(
+    "/register",
+    createUser
+);
+
+// ========================================
+// LOGIN
+// ========================================
+
+userRouter.post(
+    "/login",
+    loginUser
+);
 
 
-/* OTP VERIFICATION PAGE */
-userRouter.get("/verify-otp", (req, res) => {
-    res.render("verify-otp", {
-        email: req.query.email
-    });
-});
+// ========================================
+// OTP PAGE
+// ========================================
+
+userRouter.get(
+    "/verify-otp",
+    (req, res) => {
+        res.render("verify-otp", {
+            email: req.query.email || "",
+            error: req.query.error  || "",
+            success: req.query.success || "",
+            seconds: Number(req.query.seconds) || 0
+        });
+    }   
+);
+
+// ========================================
+// VERIFY OTP
+// ========================================
+
+userRouter.post(
+    "/verify-otp",
+    verifyOTP
+);
 
 
-/* VERIFY OTP */
-userRouter.post("/verify-otp", verifyOTP);
+
+//resend OTP
+userRouter.post(
+    "/resend-otp", resendOTP
+);
 
 
-/* LOGIN */
-userRouter.post("/login", loginUser);
 
+// ========================================
+// GET USERS (Protected for Admin only)
+// ========================================
 
-/* GET USERS */
-userRouter.get("/", getUsers);
+userRouter.get(
+    "/",
+    adminAuth,
+    getUsers
+);
 
 
 module.exports = userRouter;

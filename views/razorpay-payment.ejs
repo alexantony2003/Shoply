@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shoply | Pay for order</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="panel" style="max-width:620px;margin:8vh auto;padding:34px;text-align:center">
+  <h1>Complete your payment</h1>
+  <p>Order <strong><%= order.orderNumber %></strong></p>
+  <p>Total: <strong>₹<%= Number(order.total).toFixed(2) %></strong></p>
+  <p id="payment-message" role="status" aria-live="polite"></p>
+  <button class="button" id="pay-button" type="button">Pay with Razorpay</button>
+  <p><a href="/orders/<%= order._id %>">Return to order details</a></p>
+</main>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  const payButton = document.getElementById('pay-button');
+  const message = document.getElementById('payment-message');
+  const orderId = <%- JSON.stringify(String(order._id)) %>;
+
+  payButton.addEventListener('click', () => {
+    message.textContent = '';
+    if (typeof Razorpay === 'undefined') {
+      message.textContent = 'Razorpay Checkout could not be loaded. Check your internet connection and try again.';
+      return;
+    }
+    const checkout = new Razorpay({
+      key: <%- JSON.stringify(keyId) %>,
+      amount: <%= amountInPaise %>,
+      currency: 'INR',
+      name: 'Shoply',
+      description: `Order <%= order.orderNumber %>`,
+      order_id: <%- JSON.stringify(order.razorpayOrderId) %>,
+      handler: async payment => {
+        payButton.disabled = true;
+        message.textContent = 'Verifying your payment...';
+        try {
+          const response = await fetch(`/orders/${encodeURIComponent(orderId)}/pay/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payment)
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Payment verification failed.');
+          window.location.assign(result.redirect);
+        } catch (error) {
+          message.textContent = error.message || 'Unable to verify your payment. Please try again.';
+          payButton.disabled = false;
+        }
+      },
+      modal: {
+        ondismiss: () => {
+          message.textContent = 'Payment was not completed. You can try again.';
+        }
+      },
+      // Razorpay renders inside its own iframe, so it cannot read CSS custom
+      // properties. Resolve the active theme's primary colour to a hex value.
+      theme: {
+        color: (getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#3A0F34')
+      }
+    });
+    checkout.on('payment.failed', event => {
+      message.textContent = event.error && event.error.description
+        ? event.error.description
+        : 'Payment failed. Please try again.';
+    });
+    checkout.open();
+  });
+</script>
+</body>
+</html>

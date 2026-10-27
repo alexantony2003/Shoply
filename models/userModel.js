@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 
+const addressSchema = new mongoose.Schema({
+    label: { type: String, trim: true, default: "Home", maxlength: 40 },
+    fullName: { type: String, required: true, trim: true, maxlength: 100 },
+    phone: { type: String, required: true, trim: true, maxlength: 20 },
+    street: { type: String, required: true, trim: true, maxlength: 200 },
+    city: { type: String, required: true, trim: true, maxlength: 100 },
+    state: { type: String, required: true, trim: true, maxlength: 100 },
+    postalCode: { type: String, required: true, trim: true, maxlength: 20 },
+    country: { type: String, required: true, trim: true, maxlength: 100, default: "India" },
+    isDefault: { type: Boolean, default: false }
+}, { timestamps: true });
+
 const userModelSchema = new mongoose.Schema({
 
     name: {
@@ -18,17 +30,39 @@ const userModelSchema = new mongoose.Schema({
 
     passwordHash: {
         type: String,
-        required: true
+        required: function() {
+            return !this.googleId;
+        }
     },
 
     phone: {
         type: String,
-        required: true
+        required: false,
+        default: ''
     },
 
-    address: {
+    addresses: {
+        type: [addressSchema],
+        default: []
+    },
+
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+
+    walletBalance: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+
+    googleId: {
         type: String,
-        required: true
+        unique: true,
+        sparse: true
+    },
+
+    avatar: {
+        type: String,
+        default: ''
     },
 
     role: {
@@ -39,7 +73,8 @@ const userModelSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        default: 'active'
+        enum: ["active", "blocked"],
+        default: "active"
     },
 
     createdAt: {

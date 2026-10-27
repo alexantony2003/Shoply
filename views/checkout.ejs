@@ -1,5 +1,36 @@
-<% const order = { subtotal: 208.99, shipping: 8.00, tax: 17.36 }; order.total = order.subtotal + order.shipping + order.tax; %>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Shoply | Checkout</title>
-<style>body{margin:0;font-family:Arial,sans-serif;background:#f7f8fa;color:#20252b}.content{max-width:980px;margin:34px auto;padding:0 20px}.layout{display:grid;grid-template-columns:1fr 320px;gap:24px}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px}label{display:block;margin:16px 0 6px;font-weight:bold}input,select{box-sizing:border-box;width:100%;padding:11px;border:1px solid #d5dbe3;border-radius:6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}.summary p{display:flex;justify-content:space-between}.total{font-size:20px;font-weight:bold}.button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:6px;background:#2563eb;color:#fff;font-weight:bold;cursor:pointer}@media(max-width:700px){.layout{grid-template-columns:1fr}.row{grid-template-columns:1fr}}</style></head>
-<body><main class="content"><h1>Checkout</h1><div class="layout"><section class="panel"><form action="/checkout" method="post"><h2>Shipping information</h2><label for="name">Full name</label><input id="name" name="name" type="text" value="Alex Antony" required><label for="address">Street address</label><input id="address" name="address" type="text" placeholder="123 Market Street" required><div class="row"><div><label for="city">City</label><input id="city" name="city" type="text" placeholder="New York" required></div><div><label for="postalCode">Postal code</label><input id="postalCode" name="postalCode" type="text" placeholder="10001" required></div></div><label for="payment">Payment method</label><select id="payment" name="payment"><option>Credit card</option><option>PayPal</option><option>Cash on delivery</option></select><label for="card">Card number</label><input id="card" name="card" type="text" placeholder="0000 0000 0000 0000"><button class="button" type="submit">Place order</button></form></section><aside class="panel summary"><h2>Order total</h2><p><span>Subtotal</span><span>$<%= order.subtotal.toFixed(2) %></span></p><p><span>Shipping</span><span>$<%= order.shipping.toFixed(2) %></span></p><p><span>Tax</span><span>$<%= order.tax.toFixed(2) %></span></p><p class="total"><span>Total</span><span>$<%= order.total.toFixed(2) %></span></p></aside></div></main></body></html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply | Checkout</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<main class="content" style="max-width:1000px;margin:36px auto;padding:0 20px">
+  <p><a href="/cart">Back to cart</a></p><h1>Checkout</h1>
+  <% if (error) { %><p role="alert"><%= error === "stock" ? "Some items are no longer available in the requested quantity. Review your cart and try again." : error === "wallet" ? "Your wallet balance is not enough for this order." : error === "cod-limit" ? "Cash on delivery is available only for orders up to ₹1,000." : error === "razorpay-config" ? "Online payment is unavailable. Configure both Razorpay keys in your .env file and restart the server." : "Select a saved delivery address." %></p><% } %>
+  <% if (!addresses.length) { %><section class="panel"><p>Add a delivery address before placing your order.</p><a class="button" href="/profile/addresses/new">Add address</a></section><% } else { %>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px">
+      <section class="panel">
+        <form action="/checkout" method="post">
+          <h2>Delivery address</h2>
+          <% addresses.forEach((address, index) => { %>
+            <label style="display:block;padding:14px;border:1px solid var(--color-border);border-radius:8px;margin:10px 0">
+              <input type="radio" name="addressId" value="<%= address._id %>" <%= address.isDefault || index === 0 ? "checked" : "" %> required>
+              <strong><%= address.label %> — <%= address.fullName %></strong><br>
+              <%= address.street %>, <%= address.city %>, <%= address.state %> <%= address.postalCode %>, <%= address.country %><br>
+              <%= address.phone %>
+              <a href="/profile/addresses/<%= address._id %>/edit">Edit</a>
+            </label>
+          <% }); %>
+          <p><a href="/profile/addresses/new">Add another saved address</a></p>
+          <h2>Payment</h2><label><input type="radio" name="paymentMethod" value="Cash on delivery" checked> Cash on delivery</label><br><label><input type="radio" name="paymentMethod" value="Wallet" <%= walletBalance < total ? 'disabled' : '' %>> Wallet (₹<%= walletBalance.toFixed(2) %> available)</label><br><label><input type="radio" name="paymentMethod" value="Razorpay" <%= razorpayConfigured ? '' : 'disabled' %>> Razorpay (online payment)</label>
+          <% if (!razorpayConfigured) { %><p role="status">Online payment is unavailable. Configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your .env file, then restart the server.</p><% } %>
+          <button class="button" type="submit">Place order</button>
+        </form>
+      </section>
+      <aside class="panel"><h2>Order summary</h2>
+        <% items.forEach(item => { %><p><%= item.product ? item.product.name : "Unavailable item" %> × <%= item.quantity %><br>₹<%= Number(item.lineTotal || 0).toFixed(2) %></p><% }); %>
+        <hr><p>Subtotal <strong>₹<%= subtotal.toFixed(2) %></strong></p><% if (coupon && coupon.code) { %><p>Coupon <%= coupon.code %>: -₹<%= coupon.discount.toFixed(2) %></p><% } %><p>Delivery <strong>₹<%= deliveryCharge.toFixed(2) %></strong></p><p>Total <strong>₹<%= total.toFixed(2) %></strong></p>
+      </aside>
+    </div>
+  <% } %>
+</main>
+</body>
+</html>

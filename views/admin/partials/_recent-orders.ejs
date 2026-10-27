@@ -1,0 +1,45 @@
+<section class="panel glass-card dashboard-orders-card">
+    <div class="dash-card-header">
+        <div>
+            <h2>Recent Orders</h2>
+            <p class="dash-card-subtitle">Latest customer purchase transactions</p>
+        </div>
+        <a class="dash-view-all-link" href="/admin/orders">View all orders &rarr;</a>
+    </div>
+    <% if (!recentOrders || !recentOrders.length) { %>
+        <p class="empty" style="margin: 20px 0;">No orders placed yet.</p>
+    <% } else { %>
+        <div class="table-wrap" style="overflow-x: auto;">
+            <table class="table dash-orders-table">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% recentOrders.forEach(order => { %>
+                        <tr>
+                            <td><strong><%= order.orderNumber || order.id %></strong></td>
+                            <td><%= order.customer %></td>
+                            <td><%= order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent' %></td>
+                            <td><span class="dash-payment-pill"><%= order.paymentMethod || 'Online' %></span></td>
+                            <td>
+                                <span class="dash-status-pill status-<%= (order.status || 'pending').toLowerCase().replace(/\s+/g, '-') %>">
+                                    <%= order.status %>
+                                </span>
+                            </td>
+                            <td><strong style="color: var(--brand-dark);"><%= order.total %></strong></td>
+                            <td><a class="dash-table-btn" href="/admin/orders">View</a></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    <% } %>
+</section>

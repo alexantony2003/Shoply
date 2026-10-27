@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shoply | Verify OTP</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--color-background);
+            color: var(--color-text);
+        }
+
+        .panel {
+            max-width: 420px;
+            margin: 10vh auto;
+            padding: 32px;
+            background: var(--color-surface);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgb(var(--color-primary-rgb) / 0.12);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--color-primary-text);
+        }
+
+        input {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 13px;
+            margin-top: 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        input:focus {
+            outline: 3px solid var(--color-primary-border);
+            border-color: var(--color-primary);
+        }
+
+        input.invalid {
+            border-color: var(--color-danger);
+            background: var(--color-surface);
+        }
+
+        button {
+            box-sizing: border-box;
+            width: 100%;
+            margin-top: 20px;
+            padding: 13px;
+            border: 0;
+            border-radius: 6px;
+            background: var(--color-primary);
+            color: var(--color-text-on-solid);
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .email {
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            color: var(--color-text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .alert {
+            margin: 20px 0 0;
+            padding: 12px 14px;
+            border: 1px solid var(--color-danger);
+            border-radius: 6px;
+            background: var(--color-danger-soft);
+            color: var(--color-danger-text);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .success {
+            margin: 20px 0 0;
+            padding: 12px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-success-soft);
+            color: var(--color-success-text);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .resend-section {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid var(--color-border-subtle);
+        }
+
+        .resend-section p {
+            margin: 0 0 10px;
+        }
+
+        .resend-btn {
+            margin-top: 0;
+            background: var(--color-surface);
+            color: var(--color-primary-text);
+            border: 1px solid var(--color-primary);
+        }
+
+        .resend-btn:hover {
+            background: var(--color-primary-soft);
+        }
+
+        .resend-btn:disabled {
+            background: var(--color-background);
+            color: var(--color-text-muted);
+            border-color: var(--color-border);
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 520px) {
+            .panel {
+                margin: 6vh 16px;
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="panel">
+
+        <h1>Verify your email</h1>
+
+        <p>We sent a 6-digit OTP to:</p>
+
+        <p class="email">
+            <%= email %>
+        </p>
+
+        <!-- Error messages -->
+        <% if (error === "invalid") { %>
+
+            <p class="alert" role="alert">
+                That code is not correct. Check the email and try again.
+            </p>
+
+        <% } else if (error === "expired") { %>
+
+            <p class="alert" role="alert">
+                This code expired. You can request a new OTP below.
+            </p>
+
+        <% } else if (error === "wait") { %>
+
+            <p class="alert" role="alert">
+                Please wait <%= seconds %> seconds before requesting another OTP.
+            </p>
+
+        <% } else if (error === "sendfailed") { %>
+
+            <p class="alert" role="alert">
+                Unable to send the OTP. Please try again.
+            </p>
+
+        <% } %>
+
+        <!-- Success message -->
+        <% if (success === "resent") { %>
+
+            <p class="success" role="status">
+                A new OTP has been sent to your email address.
+            </p>
+
+        <% } %>
+
+        <!-- Verify OTP form -->
+        <form action="/users/verify-otp" method="POST">
+
+            <input
+                type="text"
+                name="otp"
+                placeholder="000000"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                class="<%= error === 'invalid' ? 'invalid' : '' %>"
+                aria-invalid="<%= error === 'invalid' ? 'true' : 'false' %>"
+                aria-describedby="otp-help"
+                autofocus
+                required
+            >
+
+            <button type="submit">
+                Verify OTP
+            </button>
+
+        </form>
+
+        <p class="muted">
+            <span id="otp-help">
+                The code is valid for 5 minutes.
+            </span>
+        </p>
+
+        <!-- Resend OTP section -->
+        <div class="resend-section">
+
+            <p class="muted">
+                Didn't receive the email?
+            </p>
+
+            <form action="/users/resend-otp" method="POST">
+
+                <button
+                    type="submit"
+                    class="resend-btn"
+                    id="resendBtn"
+                >
+                    Resend OTP
+                </button>
+
+            </form>
+
+            <p class="muted" style="margin-top: 12px;">
+                Check your spam folder if you cannot find the email.
+            </p>
+
+        </div>
+
+    </main>
+
+    <script>
+        // Client-side cooldown for the resend button.
+        // The server must still enforce the actual cooldown.
+
+        const resendBtn = document.getElementById("resendBtn");
+
+        const cooldownSeconds =
+            <%= error === "wait" ? Math.max(0, seconds) : 0 %>;
+
+        if (cooldownSeconds > 0) {
+            let remaining = cooldownSeconds;
+
+            resendBtn.disabled = true;
+
+            const timer = setInterval(() => {
+                resendBtn.textContent =
+                    `Resend OTP (${remaining}s)`;
+
+                remaining--;
+
+                if (remaining < 0) {
+                    clearInterval(timer);
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = "Resend OTP";
+                }
+            }, 1000);
+        }
+    </script>
+
+</body>
+</html>
