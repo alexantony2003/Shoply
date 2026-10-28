@@ -2,9 +2,9 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/userModel');
 
-const clientID = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const callbackURL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback';
+const clientID = (process.env.GOOGLE_CLIENT_ID || '').trim();
+const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+const callbackURL = (process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback').trim();
 
 if (clientID && clientSecret && !clientID.includes('your-google-client-id')) {
     passport.use(
@@ -12,7 +12,8 @@ if (clientID && clientSecret && !clientID.includes('your-google-client-id')) {
             {
                 clientID,
                 clientSecret,
-                callbackURL
+                callbackURL,
+                state: true
             },
             async (accessToken, refreshToken, profile, done) => {
                 try {
@@ -80,4 +81,3 @@ passport.deserializeUser(async (id, done) => {
 });
 
 module.exports = passport;
-

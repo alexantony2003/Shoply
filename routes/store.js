@@ -32,16 +32,12 @@ const {
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-	if (!req.session.user) {
-		return res.redirect('/login');
-	}
-
+router.get(['/', '/home'], async (req, res) => {
 	try {
 		const products = await Product.find()
 			.populate("category")
 			.sort({ createdAt: -1 });
-		res.render('home', { user: req.session.user, products });
+		res.render('home', { user: req.session.user || null, products });
 	} catch (error) {
 		res.status(500).send(error.message);
 	}

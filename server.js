@@ -1,4 +1,4 @@
-require('dotenv').config();
+const dotenvConfig = require('dotenv').config();
 
 const path = require('path');
 const express = require('express');
@@ -21,6 +21,21 @@ const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const environmentSessionSecret = process.env.SESSION_SECRET;
+const fileSessionSecret = dotenvConfig.parsed && dotenvConfig.parsed.SESSION_SECRET;
+const sessionSecret = isProduction
+    && Buffer.byteLength(environmentSessionSecret || '', 'utf8') < 32
+    && Buffer.byteLength(fileSessionSecret || '', 'utf8') >= 32
+    ? fileSessionSecret
+    : environmentSessionSecret;
+
+if (isProduction) {
+    if (!sessionSecret || Buffer.byteLength(sessionSecret, 'utf8') < 32) {
+        throw new Error('Production requires a SESSION_SECRET of at least 32 UTF-8 bytes.');
+    }
+    app.set('trust proxy', 1);
+}
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -29,12 +44,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'shoply-development-secret',
+    secret: sessionSecret || 'shoply-development-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        sameSite: 'lax'
+        sameSite: 'lax',
+        secure: isProduction
     }
 }));
 

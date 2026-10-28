@@ -292,11 +292,16 @@
     <header class="site-header glass-card">
         <a class="brand" href="/">Shoply</a>
 
-        <nav class="glass-card">
+        <nav class="glass-card" aria-label="Main navigation">
             <a href="/">Home</a>
+            <a href="/products">Shop</a>
             <a href="/cart">Cart</a>
             <a href="/wishlist">Wishlist</a>
-            <a href="/profile">Profile</a>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <a href="/profile">Account</a>
+            <% } else { %>
+                <a href="/login">Sign in</a>
+            <% } %>
         </nav>
     </header>
 

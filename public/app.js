@@ -37,6 +37,7 @@
     ];
     const children = Array.from(nav.children);
     const hasProfileMenu = children.some((child) => child.classList.contains('profile-container'));
+    const loginLink = children.find((child) => child.matches && child.matches('a[href="/login"]'));
     const existingLinks = new Map();
     const extras = [];
 
@@ -49,7 +50,9 @@
       const isCoreLink = entries.some(([, target]) => target === href);
       if (isCoreLink && !existingLinks.has(href)) {
         existingLinks.set(href, child);
-      } else if (href === '/profile' && !hasProfileMenu && !existingLinks.has(href)) {
+      } else if (href === '/profile' && !hasProfileMenu && !loginLink && !existingLinks.has(href)) {
+        existingLinks.set(href, child);
+      } else if (href === '/login' && !hasProfileMenu && !existingLinks.has(href)) {
         existingLinks.set(href, child);
       } else {
         extras.push(child);
@@ -58,7 +61,13 @@
 
     // Rebuild nav in a clean order
     nav.innerHTML = '';
-    entries.concat(hasProfileMenu ? [] : [['Account', '/profile']]).forEach(([label, href]) => {
+    const authEntry = hasProfileMenu
+      ? []
+      : (loginLink || existingLinks.has('/login')
+        ? [['Sign in', '/login']]
+        : [['Account', '/profile']]);
+
+    entries.concat(authEntry).forEach(([label, href]) => {
       const link = existingLinks.get(href) || document.createElement('a');
       link.href = href;
       link.textContent = label === 'Shop' && existingLinks.has('/products') && existingLinks.get('/products').textContent.trim() && existingLinks.get('/products').textContent.trim() !== 'Shop'

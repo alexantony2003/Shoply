@@ -85,6 +85,9 @@
       let alertMsg = null;
       if (typeof error !== 'undefined' && error) {
         if (error === 'google_not_configured') alertMsg = 'Google Sign-In requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env file.';
+        else if (error === 'google_redirect_uri_mismatch') alertMsg = 'Google rejected the callback URL. In Google Cloud Console, add the exact GOOGLE_CALLBACK_URL from your .env to the OAuth client’s Authorized redirect URIs.';
+        else if (error === 'google_invalid_client') alertMsg = 'Google rejected the OAuth client credentials. Verify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.';
+        else if (error === 'google_cancelled') alertMsg = 'Google sign-in was cancelled.';
         else if (error === 'google_failed') alertMsg = 'Google authentication failed. Please try again.';
         else if (error === 'blocked') alertMsg = 'This account has been blocked. Please contact support.';
         else if (error === 'session_error') alertMsg = 'Session initialization error. Please try again.';
