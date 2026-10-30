@@ -2,16 +2,16 @@
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply | Checkout</title><link rel="stylesheet" href="/styles.css"></head>
 <body>
-<main class="content" style="max-width:1000px;margin:36px auto;padding:0 20px">
+<main class="content checkout-page">
   <p><a href="/cart">Back to cart</a></p><h1>Checkout</h1>
   <% if (error) { %><p role="alert"><%= error === "stock" ? "Some items are no longer available in the requested quantity. Review your cart and try again." : error === "wallet" ? "Your wallet balance is not enough for this order." : error === "cod-limit" ? "Cash on delivery is available only for orders up to ₹1,000." : error === "razorpay-config" ? "Online payment is unavailable. Configure both Razorpay keys in your .env file and restart the server." : "Select a saved delivery address." %></p><% } %>
   <% if (!addresses.length) { %><section class="panel"><p>Add a delivery address before placing your order.</p><a class="button" href="/profile/addresses/new">Add address</a></section><% } else { %>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px">
-      <section class="panel">
+    <div class="checkout-layout">
+      <section class="panel checkout-form-panel">
         <form action="/checkout" method="post">
           <h2>Delivery address</h2>
           <% addresses.forEach((address, index) => { %>
-            <label style="display:block;padding:14px;border:1px solid var(--color-border);border-radius:8px;margin:10px 0">
+            <label class="checkout-address-option">
               <input type="radio" name="addressId" value="<%= address._id %>" <%= address.isDefault || index === 0 ? "checked" : "" %> required>
               <strong><%= address.label %> — <%= address.fullName %></strong><br>
               <%= address.street %>, <%= address.city %>, <%= address.state %> <%= address.postalCode %>, <%= address.country %><br>
@@ -25,7 +25,7 @@
           <button class="button" type="submit">Place order</button>
         </form>
       </section>
-      <aside class="panel"><h2>Order summary</h2>
+      <aside class="panel checkout-summary"><h2>Order summary</h2>
         <% items.forEach(item => { %><p><%= item.product ? item.product.name : "Unavailable item" %> × <%= item.quantity %><br>₹<%= Number(item.lineTotal || 0).toFixed(2) %></p><% }); %>
         <hr><p>Subtotal <strong>₹<%= subtotal.toFixed(2) %></strong></p><% if (coupon && coupon.code) { %><p>Coupon <%= coupon.code %>: -₹<%= coupon.discount.toFixed(2) %></p><% } %><p>Delivery <strong>₹<%= deliveryCharge.toFixed(2) %></strong></p><p>Total <strong>₹<%= total.toFixed(2) %></strong></p>
       </aside>

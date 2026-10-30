@@ -104,7 +104,18 @@
     nav.insertBefore(adminLink, profileMenu || themeToggle || null);
   };
 
-  document.querySelectorAll('header').forEach((header) => {
+  // Only treat top-level storefront headers as site headers. Inner page headers
+  // (admin dashboard titles, order title rows, section headers) must keep their
+  // own layout instead of being converted into a sticky storefront navbar.
+  const storefrontHeaders = isAdminPage
+    ? []
+    : Array.from(document.body.children).filter(
+        (child) =>
+          child.tagName === 'HEADER' &&
+          !child.matches('.page-title-row, .dash-page-header, .content-header, .section-header')
+      );
+
+  storefrontHeaders.forEach((header) => {
     header.classList.add('site-header', 'glass-card');
     const nav = header.querySelector('nav');
     if (nav) {
@@ -121,7 +132,7 @@
     '.category-rail'
   ].join(',')).forEach((surface) => surface.classList.add('glass-card'));
 
-  if (!isAdminPage && !document.querySelector('header')) {
+  if (!isAdminPage && !document.body.querySelector(':scope > header')) {
     const header = document.createElement('header');
     header.className = 'site-header site-header-generated glass-card';
     const brand = document.createElement('a');
@@ -477,11 +488,6 @@
     }
   });
 
-  const loader = document.createElement('div');
-  loader.id = 'page-loader';
-  loader.innerHTML = '<span class="loading-spinner" aria-label="Loading"></span>';
-  document.body.appendChild(loader);
-
   document.querySelectorAll('form').forEach((form) => {
     form.addEventListener('submit', () => {
       form.setAttribute('aria-busy', 'true');
@@ -493,10 +499,13 @@
     });
   });
 
-  document.querySelectorAll('a:not([target]):not([href^="#"])').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      loader.classList.add('is-visible');
+  window.addEventListener('pageshow', () => {
+    document.querySelectorAll('form[aria-busy="true"]').forEach((form) => {
+      form.removeAttribute('aria-busy');
+      const button = form.querySelector('button[type="submit"], button:not([type])');
+      if (button && button.dataset.originalText) {
+        button.textContent = button.dataset.originalText;
+      }
     });
   });
 

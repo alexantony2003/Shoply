@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply | Order history</title><link rel="stylesheet" href="/styles.css"></head>
-<body><main class="content" style="max-width:1000px;margin:36px auto;padding:0 20px">
+<body><main class="content orders-page">
   <p><a href="/profile">My profile</a></p><h1>Order history</h1>
   <% if (!orders.length) { %><section class="panel"><p>You have not placed an order yet.</p><a href="/products">Browse products</a></section><% } else { %>
     <div class="panel" style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>Order</th><th>Placed</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr></thead><tbody>

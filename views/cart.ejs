@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shoply | Cart</title><link rel="stylesheet" href="/styles.css"></head>
 <body>
-<main class="content" style="max-width:1000px;margin:36px auto;padding:0 20px">
+<main class="content cart-page">
   <p><a href="/products">Continue shopping</a></p>
   <h1>Your cart</h1>
   <% if (message === "added") { %><p role="status">Product added to cart.</p><% } %>
@@ -10,18 +10,18 @@
   <% if (message === "coupon-removed") { %><p role="status">Coupon removed.</p><% } %>
   <% if (message === "invalid-coupon") { %><p role="alert">That coupon is not valid for the items in your cart.</p><% } %>
   <% if (!items.length) { %><section class="panel"><p>Your cart is empty.</p><a class="button" href="/products">Browse products</a></section><% } else { %>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px">
-      <section class="panel">
+    <div class="cart-layout">
+      <section class="panel cart-items-panel">
         <% items.forEach(item => { %>
-          <article style="display:flex;justify-content:space-between;gap:18px;padding:16px 0;border-bottom:1px solid var(--color-border)">
-            <div>
+          <article class="cart-item">
+            <div class="cart-item-info">
               <% if (item.product) { %>
                 <h2><a href="/products/<%= item.product._id %>"><%= item.product.name %></a></h2>
                 <% if (item.selection.color || item.selection.variant) { %><p><%= [item.selection.color, item.selection.variant].filter(Boolean).join(" · ") %></p><% } %>
                 <p><%= item.unavailable ? "Unavailable or out of stock" : `${item.selection.stock} in stock` %></p>
                 <% if (item.quantityUnavailable) { %><p role="alert">Your cart quantity is greater than the remaining stock. Reduce it before checkout.</p><% } %>
                 <% if (!item.unavailable) { %>
-                  <form action="/cart/update" method="post" style="display:inline-flex;gap:8px;align-items:center">
+                  <form class="cart-quantity-form" action="/cart/update" method="post">
                     <input type="hidden" name="productId" value="<%= item.product._id %>">
                     <input type="hidden" name="colorIndex" value="<%= item.colorIndex %>">
                     <input type="hidden" name="optionIndex" value="<%= item.optionIndex %>">
@@ -29,7 +29,7 @@
                     <button type="submit">Update</button>
                   </form>
                 <% } %>
-                <form action="/cart/remove" method="post" style="display:inline">
+                <form class="cart-remove-form" action="/cart/remove" method="post">
                   <input type="hidden" name="productId" value="<%= item.product._id %>">
                   <input type="hidden" name="colorIndex" value="<%= item.colorIndex %>">
                   <input type="hidden" name="optionIndex" value="<%= item.optionIndex %>">
@@ -45,7 +45,7 @@
                 </form>
               <% } %>
             </div>
-            <% if (item.product) { %><strong>₹<%= Number(item.lineTotal || 0).toFixed(2) %></strong><% } %>
+            <% if (item.product) { %><strong class="cart-item-total">₹<%= Number(item.lineTotal || 0).toFixed(2) %></strong><% } %>
           </article>
         <% }); %>
       </section>

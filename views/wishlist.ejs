@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shoply | Wishlist</title><link rel="stylesheet" href="/styles.css">
 </head>
-<body><main class="content" style="max-width:1100px;margin:36px auto;padding:0 20px">
+<body><main class="content wishlist-page">
   <p><a href="/products">Continue shopping</a></p><h1>My wishlist</h1><p>Products saved for later.</p>
   <% if (!products.length) { %><section class="panel"><p>Your wishlist is empty.</p><a class="button" href="/products">Browse products</a></section><% } else { %>
     <section class="products"><% products.forEach(product => { %>

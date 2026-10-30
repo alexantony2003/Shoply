@@ -1,8 +1,24 @@
 <aside class="sidebar" aria-label="Admin sidebar">
-    <a class="brand" href="/admin">
-        <span class="brand-mark" aria-hidden="true">S</span>
-        <span>Shoply<small>ADMIN CONSOLE</small></span>
-    </a>
+    <div class="sidebar-top-bar">
+        <a class="brand" href="/admin">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <span>Shoply<small>ADMIN CONSOLE</small></span>
+        </a>
+        <div class="sidebar-mobile-tools">
+            <button type="button" class="theme-toggle-btn admin-sidebar-theme-toggle" aria-label="Toggle light or dark theme">
+                <span class="theme-toggle-icon" aria-hidden="true"></span>
+                <span class="theme-text">Theme</span>
+            </button>
+            <a class="sidebar-store-link" href="/" title="View storefront" aria-label="View storefront">
+                <span>Store</span>
+                <span aria-hidden="true">↗</span>
+            </a>
+            <a class="sidebar-logout-link" href="/logout" title="Sign out" aria-label="Sign out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Exit</span>
+            </a>
+        </div>
+    </div>
     <p class="sidebar-caption">WORKSPACE</p>
     <nav class="admin-navigation" aria-label="Admin navigation">
         <a href="/admin">
@@ -46,21 +62,23 @@
             <span>My profile</span>
         </a>
     </nav>
-    <div class="sidebar-theme-row">
-        <button type="button" class="theme-toggle-btn admin-sidebar-theme-toggle" aria-label="Toggle light or dark theme">
-            <span class="theme-toggle-icon" aria-hidden="true"></span>
-            <span class="theme-text">Dark mode</span>
-        </button>
-    </div>
-    <div class="sidebar-actions">
-        <a class="sidebar-store-link" href="/">
-            <span>View storefront</span>
-            <span aria-hidden="true">↗</span>
-        </a>
-        <a class="sidebar-logout-link" href="/logout">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            <span>Sign out</span>
-        </a>
+    <div class="sidebar-desktop-footer">
+        <div class="sidebar-theme-row">
+            <button type="button" class="theme-toggle-btn admin-sidebar-theme-toggle" aria-label="Toggle light or dark theme">
+                <span class="theme-toggle-icon" aria-hidden="true"></span>
+                <span class="theme-text">Dark mode</span>
+            </button>
+        </div>
+        <div class="sidebar-actions">
+            <a class="sidebar-store-link" href="/">
+                <span>View storefront</span>
+                <span aria-hidden="true">↗</span>
+            </a>
+            <a class="sidebar-logout-link" href="/logout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Sign out</span>
+            </a>
+        </div>
     </div>
 </aside>
 <script>

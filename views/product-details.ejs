@@ -1,4 +1,7 @@
 <%
+const isProductUnavailable = typeof locals !== 'undefined' && typeof locals.isUnavailable !== 'undefined'
+    ? Boolean(locals.isUnavailable)
+    : (product ? (product.status !== 'active' || !product.category || product.category.status === false) : false);
 const productVariants = product && product.variants
     ? Array.from(product.variants, variant => ({
         color: variant.color,
@@ -63,6 +66,7 @@ const getHighlightIconType = highlight => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shoply | Product Details</title>
+    <link rel="stylesheet" href="/styles.css">
     <style>
         body {
             margin: 0;
@@ -108,6 +112,9 @@ const getHighlightIconType = highlight => {
 
         .product {
             display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
             gap: 40px;
             background: var(--color-surface);
             padding: 30px;
@@ -750,18 +757,74 @@ const getHighlightIconType = highlight => {
         }
 
         @media (max-width: 700px) {
+            .container {
+                margin: 20px auto;
+                padding: 12px;
+            }
+
             .product {
                 flex-direction: column;
+                gap: 24px;
+                padding: 18px;
+                border-radius: 10px;
             }
 
             .product-gallery {
                 width: 100%;
+                flex: 0 0 auto;
+                min-width: 0;
+            }
+
+            .details {
+                width: 100%;
+                min-width: 0;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            .price {
+                font-size: 1.35rem;
             }
 
             .review-summary {
                 grid-template-columns: 1fr;
+                gap: 16px;
             }
 
+            .product-specifications > div {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+
+            .product-image {
+                max-height: 360px;
+            }
+
+            .image-thumbnails {
+                overflow-x: auto;
+                padding-bottom: 4px;
+            }
+
+            .color-option {
+                width: 84px;
+                height: 90px;
+            }
+
+            .related-products {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+
+            .error-panel,
+            .section {
+                padding: 18px;
+                margin-top: 18px;
+            }
+
+            .lightbox-modal {
+                padding: 12px;
+            }
         }
     </style>
 </head>
@@ -785,14 +848,14 @@ const getHighlightIconType = highlight => {
             <span aria-hidden="true">/</span><span aria-current="page"><%= product.name %></span>
         </nav>
 
-        <% if (isUnavailable) { %>
+        <% if (isProductUnavailable) { %>
             <p class="unavailable-notice" role="status">Product is not available</p>
         <% } %>
-        <div class="product <%= isUnavailable ? 'unavailable-product' : '' %>">
+        <div class="product <%= isProductUnavailable ? 'unavailable-product' : '' %>">
             <div class="product-gallery">
                 <% if (productImages.length) { %>
                     <div class="product-image-stage" data-parallax-area data-swipe-gallery data-image-list="<%= JSON.stringify(productImages) %>">
-                        <% if (isUnavailable) { %><span class="unavailable-badge">Unavailable</span><% } else if (product.showNewTag) { %><span class="newly-added-badge">Newly added</span><% } %>
+                        <% if (isProductUnavailable) { %><span class="unavailable-badge">Unavailable</span><% } else if (product.showNewTag) { %><span class="newly-added-badge">Newly added</span><% } %>
                         <img id="main-product-image" class="product-image" data-parallax-image data-gallery-image src="<%= productImages[0] %>" alt="<%= product.name %>" onclick="openLightbox()">
                     </div>
                     <% if (productImages.length > 1) { %>
@@ -855,7 +918,7 @@ const getHighlightIconType = highlight => {
                         <span class="original-price" id="original-price" <%= currentOriginalPrice ? '' : 'hidden' %>><% if (currentOriginalPrice) { %>₹<%= Number(currentOriginalPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %><% } %></span>
                     <% } %>
                 </div>
-                <% if (coupons.length && !isUnavailable && product.stock > 0) { %>
+                <% if (coupons.length && !isProductUnavailable && product.stock > 0) { %>
                     <form class="coupon" id="coupon" action="/products/<%= product._id %>/coupon" method="post">
                         <label for="coupon-code"><strong>Available coupons</strong></label>
                         <select id="coupon-code" name="couponCode">
@@ -878,7 +941,7 @@ const getHighlightIconType = highlight => {
                         <p class="coupon-success" role="status">Applied coupon removed.</p>
                     <% } %>
                 <% } %>
-                <% if (isUnavailable) { %>
+                <% if (isProductUnavailable) { %>
                     <p class="stock-badge unavailable" id="product-stock" role="status">This product is currently unavailable.</p>
                 <% } else if (selectedStock <= 0) { %>
                     <p class="stock-badge sold-out" id="product-stock" role="status">Sold out · Out of stock</p>
@@ -920,7 +983,7 @@ const getHighlightIconType = highlight => {
                         </dl>
                     </section>
                 <% } %>
-                <% if (!isUnavailable) { %>
+                <% if (!isProductUnavailable) { %>
                     <form id="add-to-cart-form" data-max-per-customer="<%= product.maxPerCustomer || 5 %>" action="/cart/add/<%= product._id %>" method="post" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0">
                         <input type="hidden" name="colorIndex" value="<%= productVariants.length ? 0 : -1 %>">
                         <input type="hidden" name="optionIndex" value="<%= productVariants.length ? 0 : -1 %>">
@@ -930,7 +993,7 @@ const getHighlightIconType = highlight => {
                     </form>
                 <% } %>
                 <form action="/wishlist/<%= product._id %>" method="post" style="display:inline-block;margin:0 0 16px"><button class="secondary" type="submit">Save to wishlist</button></form>
-                <a class="button" id="continue-to-cart" href="/cart" <%= isUnavailable || selectedStock <= 0 ? 'hidden' : '' %>>View cart</a>
+                <a class="button" id="continue-to-cart" href="/cart" <%= isProductUnavailable || selectedStock <= 0 ? 'hidden' : '' %>>View cart</a>
             </div>
         </div>
         <section class="section" aria-labelledby="highlights-title">
@@ -982,7 +1045,7 @@ const getHighlightIconType = highlight => {
             <% if (ratingMessage === 'saved') { %>
                 <p class="rating-message" role="status">Your review has been saved.</p>
             <% } %>
-            <% if (user && !isUnavailable) { %>
+            <% if (user && !isProductUnavailable) { %>
                 <form class="review-form" action="/products/<%= product._id %>/rating" method="post">
                     <h3><%= userRating ? 'Update your review' : 'Write a review' %></h3>
                     <label for="review-rating">Your rating</label>
@@ -996,7 +1059,7 @@ const getHighlightIconType = highlight => {
                     <textarea id="review-comment" name="comment" maxlength="2000" placeholder="Share your experience"><%= userComment || '' %></textarea>
                     <button class="button" type="submit"><%= userRating ? 'Update review' : 'Submit review' %></button>
                 </form>
-            <% } else if (!user && !isUnavailable) { %>
+            <% } else if (!user && !isProductUnavailable) { %>
                 <p><a href="/login">Log in</a> to write a review.</p>
             <% } %>
             <% if (totalReviews) { %>
